@@ -8,7 +8,9 @@
 #   - uses: branes-ai/docs-kit/actions/check@<sha>
 #
 # The generator's version is the site's (docs-site/package.json); this action
-# only runs it.
+# only runs it, through the site's npm scripts (build, check), so the site's
+# own hooks run too: a `prebuild` script runs before the build, for assets the
+# pages need (generated figures, a WebAssembly module).
 name: Check the docs site
 description: Builds a docs-kit site as the deploy does and checks every link and anchor in it.
 inputs:
@@ -35,10 +37,10 @@ runs:
       working-directory: ${{ inputs.path }}
       env:
         DEPLOY_TARGET: github-pages
-      run: npx --no-install docs-kit build
+      run: npm run build
     - name: Check every link and anchor in the built site
       shell: bash
       working-directory: ${{ inputs.path }}
       env:
         DEPLOY_TARGET: github-pages
-      run: npx --no-install docs-kit check
+      run: npm run check

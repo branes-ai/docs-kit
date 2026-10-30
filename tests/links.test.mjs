@@ -107,7 +107,7 @@ test('each page links to its source for editing, and loses its title line', () =
 
 test('a document without a title fails', () => {
   const r = repo({ 'docs/a.md': 'No title.\n' });
-  assert.deepEqual(r.errors, ['docs/a.md: no "# " title heading']);
+  assert.deepEqual(r.errors, ['docs/a.md: no "# " title heading (or title in the front matter)']);
 });
 
 test('CRLF line endings: fences are seen, and the landing front matter is read', () => {

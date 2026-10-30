@@ -11,7 +11,10 @@
 // not when an installed package like this one does.
 
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import rehypeKatex from 'rehype-katex';
 import rehypeRewrite from 'rehype-rewrite';
+import remarkMath from 'remark-math';
 import { resolveConfig } from './config.mjs';
 
 export function docsKit(userConfig, configUrl, starlight) {
@@ -73,7 +76,13 @@ export function docsKit(userConfig, configUrl, starlight) {
     base,
     trailingSlash: 'always',
     markdown: {
-      rehypePlugins: [...rehypeBaseLinks],
+      remarkPlugins: [...(c.math ? [remarkMath] : []), ...c.markdown.remarkPlugins],
+      rehypePlugins: [...rehypeBaseLinks, ...(c.math ? [rehypeKatex] : []), ...c.markdown.rehypePlugins],
+    },
+    // Documents in docs/ import the site's code through @site/, the site's
+    // src/ (docs-kit sync checks that each import resolves).
+    vite: {
+      resolve: { alias: { '@site': fileURLToPath(new URL('./src', configUrl)) } },
     },
     integrations: [
       starlight({
@@ -103,7 +112,7 @@ export function docsKit(userConfig, configUrl, starlight) {
               ]
             : []),
         ],
-        customCss: ['./src/generated/theme.css'],
+        customCss: ['./src/generated/theme.css', ...(c.math ? ['katex/dist/katex.min.css'] : []), ...c.customCss],
         ...c.starlight,
       }),
     ],

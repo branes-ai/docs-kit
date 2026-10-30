@@ -8,7 +8,7 @@ const DEFAULT_ACCENT = {
 
 const KEYS = new Set([
   'repo', 'title', 'description', 'owner', 'branch', 'base', 'records', 'unpublished',
-  'groupLabels', 'accent', 'api', 'architecture', 'starlight', 'astro',
+  'groupLabels', 'accent', 'api', 'architecture', 'math', 'markdown', 'customCss', 'starlight', 'astro',
 ]);
 
 export function resolveConfig(c) {
@@ -22,6 +22,11 @@ export function resolveConfig(c) {
   if (c.api && !(Array.isArray(c.api.input) && c.api.input.length)) {
     throw new Error(`${where}: \`api.input\` must list the header folders, relative to the repo`);
   }
+  for (const k of ['remarkPlugins', 'rehypePlugins']) {
+    if (c.markdown?.[k] !== undefined && !Array.isArray(c.markdown[k])) throw new Error(`${where}: \`markdown.${k}\` must be a list`);
+  }
+  if (c.math !== undefined && typeof c.math !== 'boolean') throw new Error(`${where}: \`math\` must be true or false`);
+  if (c.customCss !== undefined && !Array.isArray(c.customCss)) throw new Error(`${where}: \`customCss\` must be a list`);
   const owner = c.owner ?? 'branes-ai';
   return {
     owner,
@@ -45,6 +50,12 @@ export function resolveConfig(c) {
     },
     // The Doxygen C++ API reference: { name, brief, input: [header folders] }.
     api: c.api ?? null,
+    // LaTeX math: $…$ and $$…$$, rendered with KaTeX at build time.
+    math: c.math ?? false,
+    // Markdown plugins, run after the kit's (rehype: after its base-path
+    // rewriting), and stylesheets loaded after the theme.
+    markdown: { remarkPlugins: c.markdown?.remarkPlugins ?? [], rehypePlugins: c.markdown?.rehypePlugins ?? [] },
+    customCss: c.customCss ?? [],
     // Passed through to Starlight and Astro, over the kit's settings.
     starlight: c.starlight ?? {},
     astro: c.astro ?? {},

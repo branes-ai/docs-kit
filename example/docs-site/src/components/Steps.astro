@@ -1,0 +1,12 @@
+---
+// The example's component, imported by docs/reference/component.mdx.
+interface Props {
+  items: string[];
+  id?: string;
+}
+const { items, id } = Astro.props;
+---
+
+<ol id={id} class="steps">
+  {items.map((step) => <li>{step}</li>)}
+</ol>
