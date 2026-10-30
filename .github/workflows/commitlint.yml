@@ -1,14 +1,19 @@
 name: commitlint
 
 on:
-  # The release PR touches only these two files and is opened by
-  # github-actions[bot], whose runs wait for approval; it merges at once, so
-  # those runs would only expire and show red.
+  # The release PR touches only these four files (the node release type also
+  # bumps package.json and its lockfile) and is opened by github-actions[bot],
+  # whose runs wait for approval; it merges at once, so those runs would only
+  # expire and show red. A PR that changes only package.json and its lockfile
+  # (a dependency bump) skips this too; its commits are linted on main, after
+  # the merge.
   pull_request:
     types: [opened, edited, synchronize, reopened]
     paths-ignore:
       - CHANGELOG.md
       - .release-please-manifest.json
+      - package.json
+      - package-lock.json
   push:
     branches: [main]
 
