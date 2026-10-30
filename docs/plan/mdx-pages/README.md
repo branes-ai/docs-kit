@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: complete
 issue: branes-ai/architecture#5
 ---
 # Plan: MDX pages in docs/, with the site's components
 
-Issue: [architecture#5](https://github.com/branes-ai/architecture/issues/5), under the epic [architecture#3](https://github.com/branes-ai/architecture/issues/3). It is the step before [reflex#50](https://github.com/branes-ai/reflex/issues/50) and [cortex#528](https://github.com/branes-ai/cortex/issues/528), which move those sites' pages into `docs/`.
+Issue: [architecture#5](https://github.com/branes-ai/architecture/issues/5), under the epic [architecture#3](https://github.com/branes-ai/architecture/issues/3). It is the step before [reflex#50](https://github.com/branes-ai/reflex/issues/50) and [cortex#528](https://github.com/branes-ai/cortex/issues/528), which move those sites' pages into `docs/`. Implemented in [docs-kit#7](https://github.com/branes-ai/docs-kit/pull/7), released as `v0.2.0`.
 
 ## Goal
 
@@ -47,6 +47,8 @@ Reflex's site is the first to move. Its needs set the scope:
 
 ## Acceptance
 
+All five were met on 2026-10-30:
+
 1. A test repo with an MDX document in `docs/`, importing a component and a JSON file from `docs-site/`, builds and renders both: the example site does this, and CI builds and checks it.
 2. A broken relative link in an MDX body fails the build with file and line; a link in a code block, a comment or an expression is not checked: unit tests.
 3. A missing import fails the build, naming the document: unit tests.
@@ -57,4 +59,4 @@ Reflex's site is the first to move. Its needs set the scope:
    - `docs-kit check` found 2072 internal links, 0 broken;
    - a screenshot of the PID explainer matches today's, except for the sidebar's added entry;
    - the trace players draw, and the math renders.
-5. anatomy, racing-drone and synapse build the same `dist/` as on v0.1.0.
+5. anatomy, racing-drone and synapse build the same `dist/` as on v0.1.0, ignoring asset hashes and the search index; their synced content is byte-identical.
