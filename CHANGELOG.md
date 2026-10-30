@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1](https://github.com/branes-ai/docs-kit/compare/v0.2.0...v0.2.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* resolve katex's stylesheet from the kit, and fail check on no pages ([#10](https://github.com/branes-ai/docs-kit/issues/10)) ([c3d8c0e](https://github.com/branes-ai/docs-kit/commit/c3d8c0e7d169ff85f9059a5a889c46b8088b0a78))
+
+
+### Documentation
+
+* mark the mdx-pages plan complete ([#9](https://github.com/branes-ai/docs-kit/issues/9)) ([c39160a](https://github.com/branes-ai/docs-kit/commit/c39160a38124002a0b303aba69dcb1a4189b5236))
+
 ## [0.2.0](https://github.com/branes-ai/docs-kit/compare/v0.1.2...v0.2.0) (2026-10-30)
 
 
