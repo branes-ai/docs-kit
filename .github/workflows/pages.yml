@@ -12,7 +12,9 @@ name: Deploy a docs site
 #         id-token: write
 #
 # Builds the Starlight site and the Doxygen C++ API reference (when the
-# config has an `api`), and publishes them to the repo's GitHub Pages. One-time
+# config has an `api`), and publishes them to the repo's GitHub Pages. The
+# steps run the site's npm scripts (api, build, check), so its hooks run too:
+# a `prebuild` script runs before the build. One-time
 # setup (repo admin): Settings → Pages → Source = "GitHub Actions".
 
 on:
@@ -90,19 +92,19 @@ jobs:
       - name: Generate the C++ API reference (Doxygen)
         if: steps.api.outputs.enabled == 'true'
         working-directory: ${{ inputs.path }}
-        run: npx --no-install docs-kit api
+        run: npm run api
 
       - name: Build the site (sync from docs/, then Astro)
         working-directory: ${{ inputs.path }}
         env:
           DEPLOY_TARGET: github-pages
-        run: npx --no-install docs-kit build
+        run: npm run build
 
       - name: Check every link and anchor in the built site
         working-directory: ${{ inputs.path }}
         env:
           DEPLOY_TARGET: github-pages
-        run: npx --no-install docs-kit check
+        run: npm run check
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4.0.0
