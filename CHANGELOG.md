@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/branes-ai/docs-kit/compare/v0.1.2...v0.2.0) (2026-10-30)
+
+
+### Features
+
+* mdx pages in docs/, with the site's components ([#7](https://github.com/branes-ai/docs-kit/issues/7)) ([f855c30](https://github.com/branes-ai/docs-kit/commit/f855c30a7f5cf9740203590c4b52de8dd40cf210))
+
 ## [0.1.2](https://github.com/branes-ai/docs-kit/compare/v0.1.1...v0.1.2) (2026-10-30)
 
 
