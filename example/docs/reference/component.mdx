@@ -1,0 +1,20 @@
+---
+title: A page with a component
+description: An MDX page in docs/, using a component and data from the site.
+sidebar:
+  label: Component page
+  group: Pages with components
+---
+
+import Steps from '@site/components/Steps.astro';
+import steps from '@site/data/steps.json';
+
+This page is MDX in `docs/`. It imports a component and its data from the site, through `@site/`, and its links are checked as a Markdown page's are: [the entity heading](headings.md#a--b), [the next page](more.md).
+
+{/* A comment is not checked: [x](nowhere.md) */}
+
+## The component
+
+<Steps items={steps} id="steps-widget" />
+
+An expression is not checked either: {"[x](nowhere.md)"}. Back to [the widget](#steps-widget).

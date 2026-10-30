@@ -4,9 +4,9 @@ The docs-site generator every Branes.AI repo shares. A repo writes its documents
 
 ## What it does
 
-- Every `docs/**/*.md` becomes a page, a folder's `README.md` becomes the folder's index, and the first `# ` heading becomes the title. Each page's "Edit page" link opens its source in `docs/`.
+- Every `docs/**/*.md` and `docs/**/*.mdx` becomes a page, and a folder's `README.md` becomes the folder's index. The title is the front matter's `title`, or else the first `# ` heading. The rest of the front matter (`description`, …) is kept. Each page's "Edit page" link opens its source in `docs/`.
 - `docs/index.mdx` is the landing page, using Starlight's hero and components. `docs/README.md` is the documentation map, at `/overview/`.
-- The sidebar has one group per top-level folder, in the order of the map's table. Within a group, pages follow the order of the links in that folder's row.
+- The sidebar has one group per top-level folder, in the order of the map's table, and one per top-level document that the map lists. Within a group, pages follow the order of the links in that folder's row. A page's front matter can set `sidebar.label`, the label instead of the title, and `sidebar.group`, to list it in a nested group of that name; `sidebar.hidden` leaves it out (see [MDX pages and the sidebar](#mdx-pages-and-the-sidebar)).
 - **Links are checked.** A link to a document becomes a link to its page, and a link to any other file in the repo becomes a GitHub link. A relative link or anchor that doesn't resolve fails the build, naming the file and line. Headings are read with a Markdown parser, so an anchor is checked as GitHub and Starlight render it. After the build, `docs-kit check` checks every link and anchor in the built HTML.
 - **The records**, `docs/adr/` and `docs/plan/`, are published on the [architecture site](https://branes-ai.github.io/architecture/) rather than here. Their old pages redirect there.
 - **The C++ API reference** is built by Doxygen from the headers the config lists, and served at `<base>api/`.
@@ -80,6 +80,9 @@ export default {
     brief: 'branes::synapse — GGUF loader, quantized kernels, graph engine and models',
     input: ['sdk/include'],         // header folders, relative to the repo
   },
+  math: true,                       // KaTeX math
+  customCss: ['./src/styles/custom.css'],  // after the theme
+  // markdown: { remarkPlugins, rehypePlugins }, after the kit's own
   // owner, branch, base, records, architecture: the Branes.AI defaults
   // starlight, astro: passed through, over the kit's settings
 };
@@ -122,6 +125,43 @@ jobs:
 ```
 
 The generator's version is the one in `package.json`. The action and the workflow only run it, so they are pinned by commit like any other action.
+
+### MDX pages and the sidebar
+
+A page that needs the site's components is MDX in `docs/`, and it imports them from the site's `src/` through `@site/`:
+
+```mdx
+---
+title: How the PID Controller Works
+description: An explainer for Pid, one term at a time.
+sidebar:
+  label: Explainer          # the sidebar's label, instead of the title
+  group: PID Controller     # a nested group in its folder's sidebar group
+---
+
+import TracePlayer from '@site/components/trace/TracePlayer.astro';
+import terms from '@site/traces/pid/terms.json';
+
+Links are checked as in Markdown: [the developer guide](pid.mdx#api).
+
+<TracePlayer trace={terms} id="terms" />
+```
+
+- **Imports:** each import must resolve, or the sync fails, naming the document and line. That means a file under `docs-site/src/` through `@site/`, or an installed package. A relative import is an error: it would only resolve in one of `docs/` and the generated content.
+- **What's checked:** links in Markdown text are checked and rewritten. Imports, `{expressions}` (and `{/* comments */}`) and JSX attributes are left as written. A JSX element's `id` can be linked as an anchor, and `docs-kit check` checks such links after the build.
+- **Type checking:** for `@site/` in TypeScript, add `"paths": { "@site/*": ["src/*"] }` under `compilerOptions` in the site's `tsconfig.json`.
+- **GitHub:** GitHub shows an `.mdx` file as source, so write a page as `.md` unless it needs a component.
+- **Nested groups:** pages with the same `sidebar.group` are listed together, in a nested group placed where its first page would be, in the order of the map's row. The files stay where they are, so the routes don't change.
+
+### Math, Markdown plugins and styles
+
+- `math: true` renders LaTeX math (`$…$`, `$$…$$`) with KaTeX at build time. The sync then reads `$…$` as math, as remark-math does, so the braces of LaTeX in MDX aren't taken for expressions.
+- `markdown: { remarkPlugins, rehypePlugins }` adds plugins after the kit's own.
+- `customCss: ['./src/styles/custom.css']` adds stylesheets after the theme.
+
+### Assets built before the site
+
+The site's npm scripts run the kit, so npm's hooks work as usual: a `prebuild` script (or `predev`) runs first. Use it for assets the pages need, such as generated figures or a WebAssembly module. The CI action and the deploy workflow run `npm run build`, so they run the hook too. The toolchain the hook needs (Emscripten, CMake) has to be installed by the repo's own workflow.
 
 ## Commands
 
