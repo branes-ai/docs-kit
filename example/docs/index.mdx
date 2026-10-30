@@ -1,0 +1,19 @@
+---
+title: docs-kit example
+description: The site docs-kit's CI builds and checks.
+template: splash
+hero:
+  tagline: A site generated from docs/.
+  actions:
+    - text: Get started
+      link: ./getting-started/introduction/
+      icon: right-arrow
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Headings" icon="document">
+    Every heading form, linked: [the reference](reference/headings.md#setext-heading).
+  </Card>
+</CardGrid>

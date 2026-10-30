@@ -1,0 +1,69 @@
+name: CI
+
+# The generator's unit tests, the example site built and checked with the
+# same commands actions/check runs in a repo's PR job, and the check-records
+# action on this repo's plan.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+
+  example:
+    name: Example site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+      # The example resolves the kit, Astro and Starlight from this repo's
+      # node_modules, so the action's own install is this one.
+      - run: npm ci --no-audit --no-fund
+      - name: Build and check the example
+        working-directory: example/docs-site
+        env:
+          DEPLOY_TARGET: github-pages
+        run: |
+          node ../../bin/docs-kit.mjs build
+          node ../../bin/docs-kit.mjs check
+
+  records:
+    name: Architecture records
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: branes-ai/architecture/actions/check-records@85afb5d4ec90bcbdc87182da91f566ff139826dd  # main after architecture#7
+        with:
+          strict: 'true'

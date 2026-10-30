@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+
+# Generated from ../docs by `docs-kit sync`; edit the documents in docs/.
+src/content/docs/
+src/generated/
+public/adr/
+public/plan/
+public/api/
