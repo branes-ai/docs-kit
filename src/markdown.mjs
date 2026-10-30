@@ -39,7 +39,10 @@ export function lines(text) {
   });
 }
 
-const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+// Front matter, which may be empty (`---` then `---`): the lazy `??` tries the
+// empty block first, so a later `---` (a thematic break) is never taken for
+// its end.
+export const FRONT_MATTER = /^---\r?\n(?:([\s\S]*?)\r?\n)??---(?:\r?\n|$)/;
 
 // A document's front matter: its fields, and how many lines it takes (0 when
 // there is none). Front matter that is not a YAML mapping is an error.
@@ -48,7 +51,7 @@ export function frontMatter(text) {
   if (!m) return { data: {}, lineCount: 0, error: null };
   const lineCount = m[0].split(/\r?\n/).length - (/\n$/.test(m[0]) ? 1 : 0);
   try {
-    const data = yaml.load(m[1]) ?? {};
+    const data = yaml.load(m[1] ?? '') ?? {};
     if (typeof data !== 'object' || Array.isArray(data)) return { data: {}, lineCount, error: 'front matter is not a mapping' };
     return { data, lineCount, error: null };
   } catch (e) {

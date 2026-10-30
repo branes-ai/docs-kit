@@ -171,3 +171,31 @@ test('docsKit adds the config\'s plugins after its own, its stylesheets after th
   }
   assert.throws(() => resolveConfig({ repo: 'r', title: 'T', description: 'D', markdown: { rehypePlugins: 'x' } }), /markdown\.rehypePlugins/);
 });
+
+test('empty front matter is empty: a later --- is not its end', () => {
+  const r = repo({ 'docs/a/e.md': '---\n---\n# Empty\n\nText.\n\n---\n\nAfter a break.\n' });
+  assert.deepEqual(r.errors, []);
+  assert.equal(
+    r.read('src/content/docs/a/e.md'),
+    '---\ntitle: "Empty"\neditUrl: "https://github.com/branes-ai/demo/edit/main/docs/a/e.md"\n---\nText.\n\n---\n\nAfter a break.\n',
+  );
+});
+
+test('@site/ imports resolve as Vite does: extensions and folder indexes', () => {
+  const r = repo({
+    'docs/a/w.mdx': [
+      '---', 'title: W', '---',
+      "import plot from '@site/lib/plot';",
+      "import parts from '@site/lib/parts';",
+      "import data from '@site/data/points';",
+      "import nothing from '@site/lib/empty';",
+      '',
+      'Text.',
+    ].join('\n'),
+    'docs-site/src/lib/plot.ts': 'export default 1;\n',
+    'docs-site/src/lib/parts/index.js': 'export default 2;\n',
+    'docs-site/src/data/points.json': '[]\n',
+    'docs-site/src/lib/empty/README.md': 'A folder without an index.\n',
+  });
+  assert.deepEqual(r.errors, ['docs/a/w.mdx:7: import @site/lib/empty: docs-site/src/lib/empty does not exist']);
+});

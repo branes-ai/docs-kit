@@ -33,7 +33,7 @@
     "astro": "^5.18.2",
     "github-slugger": "^2.0.0",
     "js-yaml": "^4.3.2",
-    "katex": "^0.17.0",
+    "katex": "^0.16.47",
     "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-gfm": "^3.1.0",
     "mdast-util-math": "^3.0.0",

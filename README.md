@@ -45,7 +45,7 @@ docs-site/
     "preview": "docs-kit preview"
   },
   "dependencies": {
-    "@branes-ai/docs-kit": "github:branes-ai/docs-kit#v0.1.0"
+    "@branes-ai/docs-kit": "github:branes-ai/docs-kit#v0.2.0"
   }
 }
 ```
@@ -161,7 +161,9 @@ Links are checked as in Markdown: [the developer guide](pid.mdx#api).
 
 ### Assets built before the site
 
-The site's npm scripts run the kit, so npm's hooks work as usual: a `prebuild` script (or `predev`) runs first. Use it for assets the pages need, such as generated figures or a WebAssembly module. The CI action and the deploy workflow run `npm run build`, so they run the hook too. The toolchain the hook needs (Emscripten, CMake) has to be installed by the repo's own workflow.
+The site's npm scripts run the kit, so npm's hooks work as usual: a `prebuild` script (or `predev`) runs first. Use it for assets the pages need, such as generated figures or a WebAssembly module. The CI action and the deploy workflow run `npm run build`, so they run the hook too.
+
+A hook that needs a toolchain (Emscripten, CMake) needs it installed first. In CI, install it in the job's steps before `actions/check`. The deploy workflow is a separate job that the caller can't add steps to, so a repo whose hook needs a toolchain keeps its own deploy workflow, running the same npm scripts, or makes the hook install what it needs.
 
 ## Commands
 

@@ -23,13 +23,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { slug as slugify } from 'github-slugger';
 import yaml from 'js-yaml';
-import { frontMatter, githubAnchors, lines, page } from './markdown.mjs';
+import { FRONT_MATTER, frontMatter, githubAnchors, lines, page } from './markdown.mjs';
 import { themeCss } from './theme.mjs';
 
 // The landing page: MDX, for Starlight's hero and components.
 const LANDING = 'index.mdx';
 
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']);
+
+// The extensions Vite tries for an import without one.
+const MODULE_EXT = ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'];
 
 const toPosix = (p) => p.split(path.sep).join('/');
 
@@ -119,8 +122,13 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       return;
     }
     if (specifier.startsWith('@site/')) {
+      // As Vite resolves it: the file, the file with a module extension, or
+      // the folder's index.
       const file = path.join(siteDir, 'src', specifier.slice('@site/'.length).split('?')[0]);
-      if (!fs.existsSync(file)) errors.push(`${where}: import ${specifier}: ${toPosix(path.relative(repoDir, file))} does not exist`);
+      const candidates = [file, ...MODULE_EXT.map((e) => file + e), ...MODULE_EXT.map((e) => path.join(file, `index${e}`))];
+      if (!candidates.some((f) => fs.existsSync(f) && fs.statSync(f).isFile())) {
+        errors.push(`${where}: import ${specifier}: ${toPosix(path.relative(repoDir, file))} does not exist`);
+      }
       return;
     }
     if (/^(astro|virtual):/.test(specifier)) return;
@@ -169,11 +177,11 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
   let landingFront = null;
   if (hasLanding) {
     const text = fs.readFileSync(path.join(DOCS_DIR, LANDING), 'utf8');
-    const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+    const m = text.match(FRONT_MATTER);
     if (!m) {
       errors.push(`docs/${LANDING}: no front matter`);
     } else {
-      landingFront = m[1];
+      landingFront = m[1] ?? '';
       const title = landingFront.match(/^title:\s*(.+)$/m);
       if (!title) errors.push(`docs/${LANDING}: no title in the front matter`);
       const body = parse(path.join(DOCS_DIR, LANDING));
