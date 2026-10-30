@@ -1,6 +1,6 @@
 {
   "name": "@branes-ai/docs-kit",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The docs-site generator every Branes.AI repo shares: a Starlight site generated from the repo's docs/.",
   "type": "module",
   "license": "CC0-1.0",
