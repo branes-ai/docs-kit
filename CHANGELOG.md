@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/branes-ai/docs-kit/compare/v0.1.1...v0.1.2) (2026-10-30)
+
+
+### Continuous Integration
+
+* skip ci and commitlint on the release pr ([#5](https://github.com/branes-ai/docs-kit/issues/5)) ([f656abb](https://github.com/branes-ai/docs-kit/commit/f656abbe4f2ef55f94d1b71ba0b94203c4c1b1fb))
+
 ## [0.1.1](https://github.com/branes-ai/docs-kit/compare/v0.1.0...v0.1.1) (2026-10-30)
 
 
