@@ -5,7 +5,18 @@ name: CI
 # action on this repo's plan.
 
 on:
+  # The release PR touches only these four files (the node release type also
+  # bumps package.json and its lockfile) and is opened by github-actions[bot],
+  # whose runs wait for approval; it merges at once, so those runs would only
+  # expire and show red. A PR that changes only package.json and its lockfile
+  # (a dependency bump) skips this too: it runs on main after the merge, or
+  # by hand with workflow_dispatch before it.
   pull_request:
+    paths-ignore:
+      - CHANGELOG.md
+      - .release-please-manifest.json
+      - package.json
+      - package-lock.json
   push:
     branches: [main]
   workflow_dispatch:
