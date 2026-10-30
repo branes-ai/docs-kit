@@ -59,4 +59,4 @@ All five were met on 2026-10-30:
    - `docs-kit check` found 2072 internal links, 0 broken;
    - a screenshot of the PID explainer matches today's, except for the sidebar's added entry;
    - the trace players draw, and the math renders.
-5. anatomy, racing-drone and synapse build the same `dist/` as on v0.1.0.
+5. anatomy, racing-drone and synapse build the same `dist/` as on v0.1.0, ignoring asset hashes and the search index; their synced content is byte-identical.
