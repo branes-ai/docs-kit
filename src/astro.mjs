@@ -11,11 +11,17 @@
 // not when an installed package like this one does.
 
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import rehypeKatex from 'rehype-katex';
 import rehypeRewrite from 'rehype-rewrite';
 import remarkMath from 'remark-math';
 import { resolveConfig } from './config.mjs';
+
+// KaTeX's stylesheet, from the kit's own copy: npm doesn't always hoist it to
+// where the site's bare `katex/…` would resolve, and it must be the version
+// rehype-katex renders with.
+const katexCss = createRequire(import.meta.url).resolve('katex/dist/katex.min.css');
 
 export function docsKit(userConfig, configUrl, starlight) {
   if (typeof starlight !== 'function') {
@@ -112,7 +118,7 @@ export function docsKit(userConfig, configUrl, starlight) {
               ]
             : []),
         ],
-        customCss: ['./src/generated/theme.css', ...(c.math ? ['katex/dist/katex.min.css'] : []), ...c.customCss],
+        customCss: ['./src/generated/theme.css', ...(c.math ? [katexCss] : []), ...c.customCss],
         ...c.starlight,
       }),
     ],

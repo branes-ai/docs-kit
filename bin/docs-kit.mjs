@@ -92,6 +92,7 @@ switch (command) {
     const dist = path.join(siteDir, 'dist');
     if (!fs.existsSync(dist)) fail('no dist/: run `docs-kit build` first');
     const { pages, checked, broken } = checkDist(dist, base);
+    if (!pages) fail('no pages in dist/: run `docs-kit build` first');
     for (const b of broken) console.error(`  ${b}`);
     console.log(`docs-kit: ${checked} internal links in ${pages} pages, ${broken.length} broken`);
     process.exit(broken.length ? 1 : 0);
