@@ -109,3 +109,26 @@ test('a document without a title fails', () => {
   const r = repo({ 'docs/a.md': 'No title.\n' });
   assert.deepEqual(r.errors, ['docs/a.md: no "# " title heading']);
 });
+
+test('CRLF line endings: fences are seen, and the landing front matter is read', () => {
+  const r = repo({
+    'docs/guide.md': '# Guide\r\n\r\n```\r\n[x](nope.md)\r\n```\r\n',
+    'docs/index.mdx': '---\r\ntitle: Demo\r\n---\r\n\r\nSee [the guide](guide.md).\r\n',
+  });
+  assert.deepEqual(r.errors, []);
+  assert.match(r.read('src/content/docs/index.mdx'), /\[the guide\]\(\/guide\/\)/);
+});
+
+test('a malformed %-escape is a link error, not a crash', () => {
+  const r = doc('[x](a%zz.md) [y](#b%zz)');
+  assert.deepEqual(r.errors, [
+    'docs/guide.md:3: link target a%zz.md does not exist',
+    'docs/guide.md:3: no heading for anchor #b%zz',
+  ]);
+});
+
+test('a footnote definition is not a link; a reference definition is', () => {
+  const r = doc('Text[^1] and [ref].\n\n[^1]: A note, not a target.\n[ref]: other.md', { 'docs/other.md': '# Other\n' });
+  assert.deepEqual(r.errors, []);
+  assert.match(r.read('src/content/docs/guide.md'), /\[\^1\]: A note, not a target\.\n\[ref\]: \/other\/$/m);
+});

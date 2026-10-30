@@ -2,7 +2,7 @@
 // are relative to the site folder, where Doxygen runs; the reference is
 // written to public/api/.
 export function doxyfile({ api }, { repoFromSite = '..' } = {}) {
-  const input = api.input.map((p) => `${repoFromSite}/${p.replace(/\/$/, '')}`).join(' ');
+  const input = api.input.map((p) => JSON.stringify(`${repoFromSite}/${p.replace(/\/$/, '')}`)).join(' ');
   return [
     `PROJECT_NAME           = ${JSON.stringify(api.name)}`,
     `PROJECT_BRIEF          = ${JSON.stringify(api.brief ?? '')}`,

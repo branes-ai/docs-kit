@@ -32,6 +32,16 @@ const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']);
 
 const toPosix = (p) => p.split(path.sep).join('/');
 
+// A malformed %-escape is kept as written, so the link check reports it with
+// its file and line rather than the run failing.
+const safeDecode = (s) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
 function walk(dir) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -106,7 +116,7 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
   let landingFront = null;
   if (hasLanding) {
     const text = fs.readFileSync(path.join(DOCS_DIR, LANDING), 'utf8');
-    const m = text.match(/^---\n([\s\S]*?)\n---\n/);
+    const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
     if (!m) {
       errors.push(`docs/${LANDING}: no front matter`);
     } else {
@@ -114,7 +124,7 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       const title = landingFront.match(/^title:\s*(.+)$/m);
       if (!title) errors.push(`docs/${LANDING}: no title in the front matter`);
       const body = parse(path.join(DOCS_DIR, LANDING));
-      const offset = m[0].split('\n').length - 1;
+      const offset = m[0].split(/\r?\n/).length - 1;
       const tagged = lines(text.slice(m[0].length));
       docs.set(LANDING, { ...body, tagged, offset, title: title ? title[1] : null, titleLines: null, ...pageOf(LANDING) });
     }
@@ -125,7 +135,7 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
     if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('//')) return target;
     const where = `docs/${rel}:${lineNo}`;
     if (target.startsWith('#')) {
-      const anchor = decodeURIComponent(target.slice(1));
+      const anchor = safeDecode(target.slice(1));
       if (!docs.get(rel).anchors.has(anchor)) errors.push(`${where}: no heading for anchor ${target}`);
       return target;
     }
@@ -134,8 +144,8 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       return target;
     }
     const [pathPart, ...rest] = target.split('#');
-    const anchor = rest.length ? decodeURIComponent(rest.join('#')) : null;
-    const abs = path.resolve(DOCS_DIR, path.posix.dirname(rel), decodeURIComponent(pathPart));
+    const anchor = rest.length ? safeDecode(rest.join('#')) : null;
+    const abs = path.resolve(DOCS_DIR, path.posix.dirname(rel), safeDecode(pathPart));
     const repoRel = toPosix(path.relative(repoDir, abs));
     if (repoRel.startsWith('..')) {
       errors.push(`${where}: link ${target} leaves the repository`);
@@ -184,7 +194,8 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
             const bare = target.startsWith('<') ? target.slice(1, -1) : target;
             return open + rewrite(bare, rel, lineNo, copies) + close;
           })
-          .replace(/^(\s*\[[^\]]+\]:\s+)(\S+)/, (_, open, target) => open + rewrite(target, rel, lineNo, copies));
+          // A reference definition; a footnote's ([^1]: text) is not a link.
+          .replace(/^(\s*\[(?!\^)[^\]]+\]:\s+)(\S+)/, (_, open, target) => open + rewrite(target, rel, lineNo, copies));
       })
       .join('');
   }
@@ -217,7 +228,7 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
     const d = docs.get(LANDING);
     // Each relative hero action (`link: ./x/`) must be the route of a page.
     const routes = new Set([...docs.values()].map((p) => p.route));
-    for (const [i, line] of landingFront.split('\n').entries()) {
+    for (const [i, line] of landingFront.split(/\r?\n/).entries()) {
       const m = line.match(/^\s*link:\s*['"]?(\.\/[^'"\s]*)/);
       if (m && !routes.has(m[1].slice(1).replace(/\/?$/, '/'))) {
         errors.push(`docs/${LANDING}:${i + 2}: hero link ${m[1]} is not a page`);

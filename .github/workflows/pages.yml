@@ -55,16 +55,28 @@ jobs:
         working-directory: ${{ inputs.path }}
         run: npm ci --no-audit --no-fund
 
+      - name: Does the site have an API reference?
+        # Only then is Doxygen installed, so a docs-only site's deploy does not
+        # depend on the Ubuntu mirror.
+        id: api
+        working-directory: ${{ inputs.path }}
+        run: |
+          node --input-type=module -e "
+            const { default: c } = await import('./docs-kit.config.mjs');
+            console.log('enabled=' + Boolean(c.api));
+          " >> "$GITHUB_OUTPUT"
+
       - name: Install Doxygen
+        if: steps.api.outputs.enabled == 'true'
         # Hardened against a stalled Ubuntu mirror (see branes-ai/cortex#443): per-request
         # timeouts and retries, a hard cap per attempt, up to 3 attempts.
         timeout-minutes: 10
         run: |
-          APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+          APT_OPTS=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
           for attempt in 1 2 3; do
             sudo dpkg --configure -a || true
-            if timeout 180 sudo apt-get $APT_OPTS update && \
-               timeout 300 sudo apt-get $APT_OPTS install -y --no-install-recommends doxygen; then
+            if timeout 180 sudo apt-get "${APT_OPTS[@]}" update && \
+               timeout 300 sudo apt-get "${APT_OPTS[@]}" install -y --no-install-recommends doxygen; then
               exit 0
             fi
             echo "::warning::apt attempt $attempt failed; retrying in 15 s"
@@ -76,6 +88,7 @@ jobs:
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0
 
       - name: Generate the C++ API reference (Doxygen)
+        if: steps.api.outputs.enabled == 'true'
         working-directory: ${{ inputs.path }}
         run: npx --no-install docs-kit api
 

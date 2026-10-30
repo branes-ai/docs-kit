@@ -119,5 +119,5 @@ test("the Doxyfile takes the config's name and header folders", () => {
     api: { name: 'R C++ API', brief: 'branes::r', input: ['sdk/include', 'sim/include/'] },
   }));
   assert.match(text, /^PROJECT_NAME {11}= "R C\+\+ API"$/m);
-  assert.match(text, /^INPUT {18}= \.\.\/sdk\/include \.\.\/sim\/include$/m);
+  assert.match(text, /^INPUT {18}= "\.\.\/sdk\/include" "\.\.\/sim\/include"$/m);
 });

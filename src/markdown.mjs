@@ -15,10 +15,11 @@ import { visit } from 'unist-util-visit';
 // Splits a document into lines tagged with whether they sit in a code fence.
 // As in CommonMark, a fence closes only on a run of its own character at least
 // as long as the opening one, with nothing after it, so a four-backtick fence
-// can show a three-backtick example.
+// can show a three-backtick example. Lines end in LF or CRLF; the CR is not
+// kept.
 export function lines(text) {
   let fence = null;
-  return text.split('\n').map((line) => {
+  return text.split(/\r?\n/).map((line) => {
     const m = line.match(/^\s*(`{3,}|~{3,})(.*)$/);
     if (m) {
       if (fence === null) fence = m[1];
