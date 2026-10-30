@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: complete
 issue: branes-ai/architecture#4
 ---
 # Plan: one shared, versioned docs-site generator
 
-Issue: [architecture#4](https://github.com/branes-ai/architecture/issues/4), under the epic [architecture#3](https://github.com/branes-ai/architecture/issues/3) (one docs-site workflow for every repo, generated from `docs/`).
+Issue: [architecture#4](https://github.com/branes-ai/architecture/issues/4), under the epic [architecture#3](https://github.com/branes-ai/architecture/issues/3) (one docs-site workflow for every repo, generated from `docs/`). Implemented in [docs-kit#1](https://github.com/branes-ai/docs-kit/pull/1) (step 1, released as `v0.1.0`), [anatomy#19](https://github.com/branes-ai/anatomy/pull/19), [racing-drone#79](https://github.com/branes-ai/racing-drone/pull/79) and [synapse#70](https://github.com/branes-ai/synapse/pull/70) (step 2), and [architecture#11](https://github.com/branes-ai/architecture/pull/11) (step 3).
 
 ## Goal
 
@@ -54,6 +54,8 @@ The npm package is `@branes-ai/docs-kit`. It is not published to a registry, and
 3. **The architecture site** lists this repo in `sources.yaml`, so this plan is published with the others.
 
 ## Acceptance
+
+All four were met on 2026-10-30:
 
 1. anatomy, racing-drone and synapse build their sites with docs-kit at a pinned version, with no local `sync-docs.mjs`.
 2. Each builds the same pages, sidebar and links as before the switch (a diff of `dist/`, ignoring hashes).
