@@ -1,0 +1,42 @@
+{
+  "name": "@branes-ai/docs-kit",
+  "version": "0.0.0",
+  "description": "The docs-site generator every Branes.AI repo shares: a Starlight site generated from the repo's docs/.",
+  "type": "module",
+  "license": "CC0-1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/branes-ai/docs-kit.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "docs-kit": "bin/docs-kit.mjs"
+  },
+  "exports": {
+    "./astro": "./src/astro.mjs",
+    "./config": "./src/config.mjs",
+    "./sync": "./src/sync.mjs"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "example": "cd example/docs-site && node ../../bin/docs-kit.mjs build && node ../../bin/docs-kit.mjs check",
+    "example:dev": "cd example/docs-site && node ../../bin/docs-kit.mjs dev"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.37.7",
+    "astro": "^5.18.2",
+    "github-slugger": "^2.0.0",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-gfm": "^3.1.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "rehype-rewrite": "^4.0.4",
+    "sharp": "^0.34.5",
+    "unist-util-visit": "^5.2.0"
+  }
+}

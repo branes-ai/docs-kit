@@ -1,0 +1,113 @@
+name: Deploy a docs site
+
+# The deploy of every repo with a docs site, called from its
+# .github/workflows/deploy-docs.yml (which keeps its own `on:` paths):
+#
+#   jobs:
+#     pages:
+#       uses: branes-ai/docs-kit/.github/workflows/pages.yml@<sha>
+#       permissions:
+#         contents: read
+#         pages: write
+#         id-token: write
+#
+# Builds the Starlight site and the Doxygen C++ API reference (when the
+# config has an `api`), and publishes them to the repo's GitHub Pages. One-time
+# setup (repo admin): Settings → Pages → Source = "GitHub Actions".
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: The site's folder.
+        type: string
+        default: docs-site
+      node-version:
+        description: The Node version to build with.
+        type: string
+        default: '22'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6.5.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.path }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.path }}
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Doxygen
+        # Hardened against a stalled Ubuntu mirror (see branes-ai/cortex#443): per-request
+        # timeouts and retries, a hard cap per attempt, up to 3 attempts.
+        timeout-minutes: 10
+        run: |
+          APT_OPTS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+          for attempt in 1 2 3; do
+            sudo dpkg --configure -a || true
+            if timeout 180 sudo apt-get $APT_OPTS update && \
+               timeout 300 sudo apt-get $APT_OPTS install -y --no-install-recommends doxygen; then
+              exit 0
+            fi
+            echo "::warning::apt attempt $attempt failed; retrying in 15 s"
+            sleep 15
+          done
+          exit 1
+
+      - name: Setup Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0
+
+      - name: Generate the C++ API reference (Doxygen)
+        working-directory: ${{ inputs.path }}
+        run: npx --no-install docs-kit api
+
+      - name: Build the site (sync from docs/, then Astro)
+        working-directory: ${{ inputs.path }}
+        env:
+          DEPLOY_TARGET: github-pages
+        run: npx --no-install docs-kit build
+
+      - name: Check every link and anchor in the built site
+        working-directory: ${{ inputs.path }}
+        env:
+          DEPLOY_TARGET: github-pages
+        run: npx --no-install docs-kit check
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4.0.0
+        with:
+          path: ${{ inputs.path }}/dist
+
+  deploy:
+    # Only the deploy job needs the Pages write scopes.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5.0.1
