@@ -27,10 +27,12 @@ It writes the starter set, pinned to that version of the kit (v0.4.0 or later: t
 - **`docs/`:** the landing page (`index.mdx`), the documentation map (`README.md`) and `getting-started/introduction.md`, to write over.
 - **`.github/workflows/`:** `docs-site.yml`, the PR check, and `deploy-docs.yml`, the deploy. Both are pinned by the commit of the release tag, which `init` looks up on GitHub; `--sha` gives it instead.
 
+For a private repo it writes no deploy. On the organization's plan, a GitHub Pages site is public even when its repo is private, so a private repo's site is built and checked by the PR job, and never published. Its config sets `records: []`, so its plans and ADRs are pages of its own site, never listed on the architecture site, which is public. `--visibility public` or `--visibility private` says which set to write. Without it, the repo counts as public only if GitHub's API, asked without a token, says it is. Anything else gives the private set, and `init` says why: a private repo, one not created yet, or no network.
+
 It writes nothing if any of those files exists already. Then:
 1. Run `npm install` in `docs-site/` for the lockfile, and `npm run dev` to see the site.
 2. Open the PR. The Docs site check builds the site.
-3. After the merge, a repo admin publishes Pages from GitHub Actions: `gh api -X POST repos/branes-ai/<repo>/pages -f build_type=workflow`. Then run the deploy (`gh workflow run deploy-docs.yml`) and check the site.
+3. For a public repo, after the merge, a repo admin publishes Pages from GitHub Actions: `gh api -X POST repos/branes-ai/<repo>/pages -f build_type=workflow`. Then run the deploy (`gh workflow run deploy-docs.yml`) and check the site.
 
 ### The site's files
 

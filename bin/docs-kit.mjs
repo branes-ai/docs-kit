@@ -4,7 +4,11 @@
 // version of the kit:
 //
 //   docs-kit init --repo <name> --title <title> --description <text> --hue <0-359>
-//                 [--sha <the release's commit>]
+//                 [--sha <the release's commit>] [--visibility public|private]
+//
+// A private repo's set has no deploy (src/init.mjs). Without --visibility, the
+// repo counts as public only if GitHub's API, asked without a token, says it
+// is; anything else (private, not found, offline) gives the private set.
 //
 // docs-kit <command>, run in a site's folder (the one with docs-kit.config.mjs):
 //
@@ -91,17 +95,35 @@ function releaseSha(tag) {
   return sha;
 }
 
-function init(argv) {
-  const known = ['repo', 'title', 'description', 'hue', 'sha'];
+// The repo's visibility from GitHub's API, without a token: 'public' only if
+// the API says so, else 'private', with the reason.
+async function lookUpVisibility(repo) {
+  try {
+    const r = await fetch(`https://api.github.com/repos/branes-ai/${repo}`, { headers: { accept: 'application/vnd.github+json' } });
+    if (r.ok && (await r.json()).visibility === 'public') return { visibility: 'public' };
+    return { visibility: 'private', reason: r.ok ? 'GitHub says it is not public' : `GitHub answered ${r.status} without a token: private, or not created yet` };
+  } catch (e) {
+    return { visibility: 'private', reason: `GitHub could not be reached (${e.message})` };
+  }
+}
+
+async function init(argv) {
+  const known = ['repo', 'title', 'description', 'hue', 'sha', 'visibility'];
   const o = options(argv);
   const unknown = Object.keys(o).filter((k) => !known.includes(k));
   if (unknown.length) fail(`unknown option(s) ${unknown.map((k) => `--${k}`).join(', ')}`);
   for (const k of ['repo', 'title', 'description', 'hue']) if (o[k] === undefined) fail(`--${k} is required`);
   const { version } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  let visibility = o.visibility;
+  if (visibility === undefined) {
+    const found = await lookUpVisibility(o.repo);
+    visibility = found.visibility;
+    if (found.reason) console.log(`docs-kit: ${found.reason}, so this is the private set: no deploy. Pass --visibility public if the repo is public.`);
+  }
   let files;
   try {
     const hue = /^\d+(\.\d+)?$/.test(o.hue) ? Number(o.hue) : NaN;
-    files = starter({ ...o, hue, version, sha: o.sha ?? releaseSha(`v${version}`) });
+    files = starter({ ...o, hue, version, visibility, sha: o.sha ?? releaseSha(`v${version}`) });
   } catch (e) {
     fail(e.message);
   }
@@ -122,18 +144,21 @@ function init(argv) {
     written.push(file);
   }
   for (const rel of Object.keys(files)) console.log(`  ${rel}`);
-  console.log(`docs-kit: the starter set of ${o.repo}'s docs site, on docs-kit v${version}. Next:
+  const next = `docs-kit: the starter set of ${o.repo}'s docs site, on docs-kit v${version}. Next:
   1. cd docs-site && npm install      the lockfile, then \`npm run dev\` to see the site
   2. write the documents in docs/, and replace the starter artwork in docs-site/
-  3. commit, and open the PR: the Docs site check builds it
+  3. commit, and open the PR: the Docs site check builds it`;
+  console.log(visibility === 'public' ? `${next}
   4. after the merge, as a repo admin, publish with GitHub Actions:
        gh api -X POST repos/branes-ai/${o.repo}/pages -f build_type=workflow
-     then run the deploy (gh workflow run deploy-docs.yml) and check https://branes-ai.github.io/${o.repo}/`);
+     then run the deploy (gh workflow run deploy-docs.yml) and check https://branes-ai.github.io/${o.repo}/` : `${next}
+The repo is private, so the site is never published: don't enable GitHub Pages for it,
+which would make the site public. Read it with \`npm run dev\`.`);
 }
 
 switch (command) {
   case 'init':
-    init(args);
+    await init(args);
     break;
   case 'sync':
     runSync(await loadConfig());

@@ -12,7 +12,8 @@ import { sync } from '../src/sync.mjs';
 
 const BIN = fileURLToPath(new URL('../bin/docs-kit.mjs', import.meta.url));
 const SHA = 'a'.repeat(40);
-const ARGS = { repo: 'isr-drone', title: 'ISR Drone', description: 'A mission repo.', hue: 210, version: '1.2.3', sha: SHA };
+const ARGS = { repo: 'isr-drone', title: 'ISR Drone', description: 'A mission repo.', hue: 210, version: '1.2.3', sha: SHA, visibility: 'public' };
+const PRIVATE = { ...ARGS, repo: 'secret-gen', visibility: 'private' };
 
 function write(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-kit-init-'));
@@ -79,11 +80,38 @@ test('the options are checked', () => {
   assert.throws(() => starter({ ...ARGS, hue: 400 }), /hue/);
   assert.throws(() => starter({ ...ARGS, title: 'Two\nlines' }), /--title must be one line/);
   assert.throws(() => starter({ ...ARGS, description: 'A\r\nB' }), /--description must be one line/);
+  for (const visibility of [undefined, 'internal', 'Public']) {
+    assert.throws(() => starter({ ...ARGS, visibility }), /--visibility must be public or private/);
+  }
+});
+
+test('a private repo\'s set has no deploy, and keeps its records on the site', async () => {
+  const files = starter(PRIVATE);
+  const publicSet = Object.keys(starter(ARGS));
+  // Every file of the public set but the deploy.
+  assert.deepEqual(Object.keys(files), publicSet.filter((rel) => rel !== '.github/workflows/deploy-docs.yml'));
+  assert.match(files['.github/workflows/docs-site.yml'], /never publishes the\n# site/);
+  assert.match(files['.github/workflows/docs-site.yml'], /There is no deploy workflow, and\n# there must not be one/);
+  assert.match(files['docs/README.md'], /never published/);
+  assert.doesNotMatch(files['docs/README.md'], /github\.io\/secret-gen/);
+  assert.doesNotMatch(files['docs-site/.gitignore'], /public\/plan/);
+  const dir = write({ ...files, 'docs/plan/a.md': '# Plan: a\n' });
+  const raw = (await import(pathToFileURL(path.join(dir, 'docs-site/docs-kit.config.mjs')).href)).default;
+  assert.deepEqual(raw.records, []);
+  const config = resolveConfig(raw);
+  assert.equal(config.records.size, 0);
+  const { errors } = sync({ siteDir: path.join(dir, 'docs-site'), config });
+  assert.deepEqual(errors, []);
+  // The plan is a page of the site, not a redirect to the architecture site.
+  assert.ok(fs.existsSync(path.join(dir, 'docs-site/src/content/docs/plan/a.md')));
+  assert.ok(!fs.existsSync(path.join(dir, 'docs-site/public/plan')));
+  // The public set is as before: the records go to the architecture site.
+  assert.equal((await import(pathToFileURL(path.join(write(starter(ARGS)), 'docs-site/docs-kit.config.mjs')).href)).default.records, undefined);
 });
 
 test('init writes the set, and writes nothing over an existing file', () => {
   const dir = write({ 'README.md': '# A repo\n' });
-  const run = () => spawnSync(process.execPath, [BIN, 'init', '--repo', 'isr-drone', '--title=ISR Drone', '--description', 'A mission repo.', '--hue', '210', '--sha', SHA], { cwd: dir, encoding: 'utf8' });
+  const run = () => spawnSync(process.execPath, [BIN, 'init', '--repo', 'isr-drone', '--title=ISR Drone', '--description', 'A mission repo.', '--hue', '210', '--sha', SHA, '--visibility', 'public'], { cwd: dir, encoding: 'utf8' });
   const first = run();
   assert.equal(first.status, 0, first.stderr);
   assert.ok(fs.existsSync(path.join(dir, '.github/workflows/deploy-docs.yml')));
@@ -94,6 +122,19 @@ test('init writes the set, and writes nothing over an existing file', () => {
   assert.match(second.stderr, /exist already, so nothing was written:\n {2}docs-site\/docs-kit\.config\.mjs/);
   assert.ok(!fs.existsSync(path.join(dir, 'docs-site/package.json')));
   assert.equal(fs.readFileSync(path.join(dir, 'docs/README.md'), 'utf8'), '# Mine\n');
+});
+
+test('init --visibility private writes no deploy, and says not to publish', () => {
+  const dir = write({});
+  const r = spawnSync(process.execPath, [BIN, 'init', '--repo', 'secret-gen', '--title', 'Secret', '--description', 'A private repo.', '--hue', '30', '--sha', SHA, '--visibility', 'private'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(fs.existsSync(path.join(dir, '.github/workflows/docs-site.yml')));
+  assert.ok(!fs.existsSync(path.join(dir, '.github/workflows/deploy-docs.yml')));
+  assert.match(r.stdout, /never published: don't enable GitHub Pages/);
+  assert.doesNotMatch(r.stdout, /build_type=workflow/);
+  const bad = spawnSync(process.execPath, [BIN, 'init', '--repo', 'x', '--title', 'X', '--description', 'X.', '--hue', '30', '--sha', SHA, '--visibility', 'internal'], { cwd: write({}), encoding: 'utf8' });
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /--visibility must be public or private/);
 });
 
 test('init needs its options', () => {
