@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/branes-ai/docs-kit/compare/v0.3.1...v0.4.0) (2026-10-31)
+
+
+### Features
+
+* docs-kit init, the starter set of a new repo's docs site ([#16](https://github.com/branes-ai/docs-kit/issues/16)) ([10b34b9](https://github.com/branes-ai/docs-kit/commit/10b34b9ec7aa509880b2ca55d65457c174110a1e))
+
 ## [0.3.1](https://github.com/branes-ai/docs-kit/compare/v0.3.0...v0.3.1) (2026-10-31)
 
 
