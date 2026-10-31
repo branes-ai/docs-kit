@@ -42,6 +42,8 @@ export function starter({ repo, title, description, hue, version, sha }) {
   if (!/^[A-Za-z0-9._-]+$/.test(repo ?? '')) throw new Error('--repo must be the repo\'s name on GitHub');
   for (const [k, v] of Object.entries({ title, description })) {
     if (typeof v !== 'string' || !v.trim()) throw new Error(`--${k} is required`);
+    // One line: it goes into the config, the front matter, a heading and the artwork.
+    if (/[\0-\x1f\x7f]/.test(v)) throw new Error(`--${k} must be one line of text`);
   }
   if (!/^\d+\.\d+\.\d+$/.test(version ?? '')) throw new Error(`no release version: ${version}`);
   if (!/^[0-9a-f]{40}$/.test(sha ?? '')) throw new Error('--sha must be the full commit SHA of the release');
@@ -255,8 +257,8 @@ jobs:
 #
 # One-time setup (repo admin): Pages' source must be GitHub Actions:
 #   gh api -X POST repos/branes-ai/${repo}/pages -f build_type=workflow
-# After that, every push to main touching docs/, docs-site/, or this workflow
-# redeploys.
+# After that, every push to main touching docs/, docs-site/, the public headers
+# (the API reference, once the config has one), or this workflow redeploys.
 
 on:
   push:
@@ -264,6 +266,7 @@ on:
     paths:
       - 'docs/**'
       - 'docs-site/**'
+      - 'sdk/include/**'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 

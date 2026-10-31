@@ -107,11 +107,21 @@ function init(argv) {
   }
   const existing = Object.keys(files).filter((rel) => fs.existsSync(path.join(siteDir, rel)));
   if (existing.length) fail(`these exist already, so nothing was written:\n  ${existing.join('\n  ')}`);
+  // Each file is created exclusively: if one appears after the check above, the
+  // files written so far are removed and nothing else is touched.
+  const written = [];
   for (const [rel, text] of Object.entries(files)) {
-    fs.mkdirSync(path.dirname(path.join(siteDir, rel)), { recursive: true });
-    fs.writeFileSync(path.join(siteDir, rel), text);
-    console.log(`  ${rel}`);
+    const file = path.join(siteDir, rel);
+    try {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, text, { flag: 'wx' });
+    } catch (e) {
+      for (const w of written) fs.rmSync(w, { force: true });
+      fail(e.code === 'EEXIST' ? `${rel} appeared while writing, so nothing was written` : `${rel}: ${e.message}`);
+    }
+    written.push(file);
   }
+  for (const rel of Object.keys(files)) console.log(`  ${rel}`);
   console.log(`docs-kit: the starter set of ${o.repo}'s docs site, on docs-kit v${version}. Next:
   1. cd docs-site && npm install      the lockfile, then \`npm run dev\` to see the site
   2. write the documents in docs/, and replace the starter artwork in docs-site/

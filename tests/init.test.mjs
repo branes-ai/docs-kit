@@ -55,6 +55,7 @@ test('the package pins the release by tag, the workflows by commit', () => {
   assert.match(files['.github/workflows/docs-site.yml'], new RegExp(`docs-kit/actions/check@${SHA}  # v1\\.2\\.3`));
   assert.match(files['.github/workflows/deploy-docs.yml'], new RegExp(`docs-kit/\\.github/workflows/pages\\.yml@${SHA}  # v1\\.2\\.3`));
   assert.match(files['.github/workflows/deploy-docs.yml'], /repos\/branes-ai\/isr-drone\/pages -f build_type=workflow/);
+  assert.match(files['.github/workflows/deploy-docs.yml'], /^ {6}- 'sdk\/include\/\*\*'$/m);
 });
 
 test('quotes, braces and tags in the title and description', async () => {
@@ -76,6 +77,8 @@ test('the options are checked', () => {
   assert.throws(() => starter({ ...ARGS, title: ' ' }), /--title is required/);
   assert.throws(() => starter({ ...ARGS, sha: 'abc' }), /--sha/);
   assert.throws(() => starter({ ...ARGS, hue: 400 }), /hue/);
+  assert.throws(() => starter({ ...ARGS, title: 'Two\nlines' }), /--title must be one line/);
+  assert.throws(() => starter({ ...ARGS, description: 'A\r\nB' }), /--description must be one line/);
 });
 
 test('init writes the set, and writes nothing over an existing file', () => {
