@@ -79,6 +79,8 @@ export default {
     name: 'Synapse C++ API',
     brief: 'branes::synapse — GGUF loader, quantized kernels, graph engine and models',
     input: ['sdk/include'],         // header folders, relative to the repo
+    // doxyfile: { HTML_EXTRA_STYLESHEET: ['doxygen-awesome/doxygen-awesome.css'] },
+    //   more Doxyfile settings, after (and over) the kit's; paths from the site folder
   },
   math: true,                       // KaTeX math
   customCss: ['./src/styles/custom.css'],  // after the theme
