@@ -75,6 +75,49 @@ test('an image in docs/ is copied next to its page', () => {
   assert.ok(r.exists('src/content/docs/img/d.svg'));
 });
 
+test('a link to an image in docs/ goes to GitHub; only a shown image is copied', () => {
+  const r = doc('See [the plot](img/p.png), and [![d](img/d.svg)](img/big.svg).\n\n![\\[x\\]](img/e.svg) [a \\[b\\] c](img/f.svg)', {
+    'docs/img/p.png': 'png',
+    'docs/img/d.svg': '<svg/>',
+    'docs/img/big.svg': '<svg/>',
+    'docs/img/e.svg': '<svg/>',
+    'docs/img/f.svg': '<svg/>',
+  });
+  assert.deepEqual(r.errors, []);
+  const page = r.read('src/content/docs/guide.md');
+  const blob = 'https://github.com/branes-ai/demo/blob/main/docs/img';
+  assert.ok(page.includes(`[the plot](${blob}/p.png)`), page);
+  assert.ok(page.includes(`[![d](img/d.svg)](${blob}/big.svg)`), page);
+  assert.ok(page.includes('![\\[x\\]](img/e.svg)'), page);
+  assert.ok(page.includes(`[a \\[b\\] c](${blob}/f.svg)`), page);
+  assert.ok(r.exists('src/content/docs/img/d.svg'));
+  assert.ok(r.exists('src/content/docs/img/e.svg'));
+  for (const f of ['p.png', 'big.svg', 'f.svg']) assert.ok(!r.exists(`src/content/docs/img/${f}`), f);
+});
+
+test('a shown image or a link to one: code spans, escapes and spaces', () => {
+  const r = doc([
+    '![a `[x](y)` label](img/c.svg) \\![not shown](img/n.svg) ![a\\\\[x]](img/b.svg)',
+    '',
+    '[the space](img/a%20b.svg)',
+  ].join('\n'), {
+    'docs/img/c.svg': '<svg/>',
+    'docs/img/n.svg': '<svg/>',
+    'docs/img/b.svg': '<svg/>',
+    'docs/img/a b.svg': '<svg/>',
+  });
+  assert.deepEqual(r.errors, []);
+  const page = r.read('src/content/docs/guide.md');
+  const blob = 'https://github.com/branes-ai/demo/blob/main/docs/img';
+  assert.ok(page.includes('![a `[x](y)` label](img/c.svg)'), page);
+  assert.ok(page.includes(`\\![not shown](${blob}/n.svg)`), page);
+  assert.ok(page.includes('![a\\\\[x]](img/b.svg)'), page);
+  assert.ok(page.includes(`[the space](${blob}/a%20b.svg)`), page);
+  assert.ok(r.exists('src/content/docs/img/c.svg'));
+  assert.ok(r.exists('src/content/docs/img/b.svg'));
+  assert.ok(!r.exists('src/content/docs/img/n.svg'));
+});
+
 test('a link to a record goes to the architecture site, its anchor checked', () => {
   const plan = '---\nstatus: draft\n---\n# Plan: x\n\n## Steps\n';
   const ok = doc('[p](plan/x/README.md#steps) [a](adr/0001-y.md)', {
