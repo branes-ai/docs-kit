@@ -13,6 +13,27 @@ The docs-site generator every Branes.AI repo shares. A repo writes its documents
 
 ## Using it
 
+### Starting a site
+
+In a repo without a site, from its root:
+
+```sh
+npx --yes github:branes-ai/docs-kit#v0.4.0 init --repo isr-drone --title "ISR Drone" \
+  --description "The Branes.AI mission repo for …" --hue 210
+```
+
+It writes the starter set, pinned to that version of the kit (v0.4.0 or later: the first with `init`), and lists what to do next:
+- **`docs-site/`:** the files below. The accent is worked out from `--hue` (0–359), at the saturation and lightness of scout-drone's green (145). The favicon and the hero image are starter artwork in that accent, for the repo to replace.
+- **`docs/`:** the landing page (`index.mdx`), the documentation map (`README.md`) and `getting-started/introduction.md`, to write over.
+- **`.github/workflows/`:** `docs-site.yml`, the PR check, and `deploy-docs.yml`, the deploy. Both are pinned by the commit of the release tag, which `init` looks up on GitHub; `--sha` gives it instead.
+
+It writes nothing if any of those files exists already. Then:
+1. Run `npm install` in `docs-site/` for the lockfile, and `npm run dev` to see the site.
+2. Open the PR. The Docs site check builds the site.
+3. After the merge, a repo admin publishes Pages from GitHub Actions: `gh api -X POST repos/branes-ai/<repo>/pages -f build_type=workflow`. Then run the deploy (`gh workflow run deploy-docs.yml`) and check the site.
+
+### The site's files
+
 A repo's `docs-site/`:
 
 ```text
@@ -169,10 +190,11 @@ A hook that needs a toolchain (Emscripten, CMake) needs it installed first. In C
 
 ## Commands
 
-Run in the site's folder:
+Run in the site's folder, except `init`:
 
 | Command | What it does |
 |---|---|
+| `docs-kit init` | The starter set of a new site (run in the repo's root; see [Starting a site](#starting-a-site)) |
 | `docs-kit sync` | Generates the content, the sidebar and the theme from `../docs`; fails on a broken link or anchor |
 | `docs-kit dev` (`start`) | Sync, then the Astro dev server |
 | `docs-kit build` | Sync, then the Astro build into `dist/` |
