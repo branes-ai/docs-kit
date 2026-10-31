@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/branes-ai/docs-kit/compare/v0.3.0...v0.3.1) (2026-10-31)
+
+
+### Continuous Integration
+
+* lint the PR title as well as its commits ([#14](https://github.com/branes-ai/docs-kit/issues/14)) ([36a4036](https://github.com/branes-ai/docs-kit/commit/36a40360741ad8b64e9864ce21493b27d1621adc))
+
 ## [0.3.0](https://github.com/branes-ai/docs-kit/compare/v0.2.1...v0.3.0) (2026-10-31)
 
 
