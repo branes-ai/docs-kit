@@ -1,6 +1,9 @@
 // The Doxyfile of a site's C++ API reference, from the config's `api`. Paths
 // are relative to the site folder, where Doxygen runs; the reference is
-// written to public/api/.
+// written to public/api/. `api.doxyfile` settings come last, so they add to
+// these or replace them (Doxygen takes a tag's last value).
+const value = (v) => (/[\s#"]/.test(v) ? JSON.stringify(v) : v);
+
 export function doxyfile({ api }, { repoFromSite = '..' } = {}) {
   const input = api.input.map((p) => JSON.stringify(`${repoFromSite}/${p.replace(/\/$/, '')}`)).join(' ');
   return [
@@ -24,6 +27,7 @@ export function doxyfile({ api }, { repoFromSite = '..' } = {}) {
     'ALPHABETICAL_INDEX     = YES',
     'SORT_MEMBER_DOCS       = YES',
     'BUILTIN_STL_SUPPORT    = YES',
+    ...Object.entries(api.doxyfile ?? {}).map(([tag, v]) => `${tag.padEnd(22)} = ${[v].flat().map(value).join(' ')}`),
     '',
   ].join('\n');
 }

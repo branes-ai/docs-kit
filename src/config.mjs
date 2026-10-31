@@ -22,6 +22,10 @@ export function resolveConfig(c) {
   if (c.api && !(Array.isArray(c.api.input) && c.api.input.length)) {
     throw new Error(`${where}: \`api.input\` must list the header folders, relative to the repo`);
   }
+  for (const [tag, v] of Object.entries(c.api?.doxyfile ?? {})) {
+    const ok = /^[A-Z][A-Z0-9_]*$/.test(tag) && [v].flat().every((x) => typeof x === 'string');
+    if (!ok) throw new Error(`${where}: \`api.doxyfile.${tag}\` must be a Doxygen tag with a string or a list of strings`);
+  }
   for (const k of ['remarkPlugins', 'rehypePlugins']) {
     if (c.markdown?.[k] !== undefined && !Array.isArray(c.markdown[k])) throw new Error(`${where}: \`markdown.${k}\` must be a list`);
   }
@@ -48,7 +52,8 @@ export function resolveConfig(c) {
       dark: { ...DEFAULT_ACCENT.dark, ...c.accent?.dark },
       light: { ...DEFAULT_ACCENT.light, ...c.accent?.light },
     },
-    // The Doxygen C++ API reference: { name, brief, input: [header folders] }.
+    // The Doxygen C++ API reference: { name, brief, input: [header folders],
+    // doxyfile: { TAG: value or [values] } added to the kit's Doxyfile }.
     api: c.api ?? null,
     // LaTeX math: $…$ and $$…$$, rendered with KaTeX at build time.
     math: c.math ?? false,

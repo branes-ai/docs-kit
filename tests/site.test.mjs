@@ -121,3 +121,24 @@ test("the Doxyfile takes the config's name and header folders", () => {
   assert.match(text, /^PROJECT_NAME {11}= "R C\+\+ API"$/m);
   assert.match(text, /^INPUT {18}= "\.\.\/sdk\/include" "\.\.\/sim\/include"$/m);
 });
+
+test('api.doxyfile adds settings after the defaults, quoting values with spaces', () => {
+  const text = doxyfile(resolveConfig({
+    repo: 'r', title: 'T', description: 'D',
+    api: {
+      name: 'R', input: ['sdk/include'],
+      doxyfile: { HTML_EXTRA_STYLESHEET: ['awesome/a.css', 'awesome/b.css'], HTML_COLORSTYLE: 'LIGHT', ALIASES: 'note=a b', SOURCE_BROWSER: 'NO' },
+    },
+  }));
+  assert.match(text, /^HTML_EXTRA_STYLESHEET += awesome\/a\.css awesome\/b\.css$/m);
+  assert.match(text, /^HTML_COLORSTYLE += LIGHT$/m);
+  assert.match(text, /^ALIASES += "note=a b"$/m);
+  // The last SOURCE_BROWSER is the config's, which Doxygen takes.
+  assert.equal(text.match(/^SOURCE_BROWSER .*$/gm).at(-1), 'SOURCE_BROWSER         = NO');
+});
+
+test('api.doxyfile takes Doxygen tags with string values only', () => {
+  const api = (doxyfile) => ({ repo: 'r', title: 'T', description: 'D', api: { name: 'R', input: ['i'], doxyfile } });
+  assert.throws(() => resolveConfig(api({ html_colorstyle: 'LIGHT' })), /api\.doxyfile\.html_colorstyle/);
+  assert.throws(() => resolveConfig(api({ RECURSIVE: true })), /api\.doxyfile\.RECURSIVE/);
+});
