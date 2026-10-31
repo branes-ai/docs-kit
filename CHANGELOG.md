@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/branes-ai/docs-kit/compare/v0.4.0...v0.4.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* a link to an image in docs/ goes to GitHub, not to a missing file ([#18](https://github.com/branes-ai/docs-kit/issues/18)) ([5fa081d](https://github.com/branes-ai/docs-kit/commit/5fa081d94448ed97e940eb5de3ed7c83dce998a2))
+
 ## [0.4.0](https://github.com/branes-ai/docs-kit/compare/v0.3.1...v0.4.0) (2026-10-31)
 
 
