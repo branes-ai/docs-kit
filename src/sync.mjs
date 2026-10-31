@@ -245,18 +245,29 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       errors.push(`${where}: ${repoRel} has no heading for anchor #${anchor}`);
     }
     const kind = isDir ? 'tree' : 'blob';
-    return `${GITHUB}/${kind}/${BRANCH}/${repoRel}` + (anchor !== null ? `#${anchor}` : '');
+    // The path decoded above, encoded again a segment at a time: a space in a
+    // name would end the link's destination.
+    const url = repoRel.split('/').map(encodeURIComponent).join('/');
+    return `${GITHUB}/${kind}/${BRANCH}/${url}` + (anchor !== null ? `#${anchor}` : '');
+  }
+
+  // Whether the character at `i` is escaped: an odd run of backslashes before it.
+  function escaped(text, i) {
+    let n = 0;
+    while (i - n - 1 >= 0 && text[i - n - 1] === '\\') n++;
+    return n % 2 === 1;
   }
 
   // Whether the link whose `](` is at `at` in `text` is an image, `![…](…)`:
   // its `[` (matched across nested brackets, as in a linked image
-  // `[![alt](a.png)](b.png)`) follows a `!`.
+  // `[![alt](a.png)](b.png)`) follows an unescaped `!`. `text` is the line with
+  // its code spans blanked, so their brackets don't count.
   function isEmbed(text, at) {
     let depth = 0;
     for (let i = at - 1; i >= 0; i--) {
-      if (text[i - 1] === '\\') continue;
+      if ((text[i] !== '[' && text[i] !== ']') || escaped(text, i)) continue;
       if (text[i] === ']') depth++;
-      else if (text[i] === '[' && depth-- === 0) return text[i - 1] === '!';
+      else if (depth-- === 0) return text[i - 1] === '!' && !escaped(text, i - 1);
     }
     return false;
   }
@@ -264,16 +275,24 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
   // Rewrites the inline links of one line, leaving code spans alone, and in
   // MDX, {expressions}.
   function rewriteLine(line, rel, lineNo, copies) {
-    return line
-      .split(rel.endsWith('.mdx') ? /(`+[^`]*`+|\{[^{}]*\})/ : /(`+[^`]*`+)/)
+    const parts = line.split(rel.endsWith('.mdx') ? /(`+[^`]*`+|\{[^{}]*\})/ : /(`+[^`]*`+)/);
+    // The line with its code spans (and expressions) blanked, and where each
+    // part starts in it: a link's `[` can be in an earlier part than its `](`.
+    const blanked = parts.map((part, i) => (i % 2 === 1 ? ' '.repeat(part.length) : part)).join('');
+    let start = 0;
+    return parts
       .map((part, i) => {
+        const offset = start;
+        start += part.length;
         if (i % 2 === 1) return part;
         return part
-          .replace(/(\]\()(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?\))/g, (_, open, target, close, at, text) => {
+          .replace(/(\]\()(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?\))/g, (_, open, target, close, at) => {
             const bare = target.startsWith('<') ? target.slice(1, -1) : target;
-            return open + rewrite(bare, rel, lineNo, copies, isEmbed(text, at)) + close;
+            return open + rewrite(bare, rel, lineNo, copies, isEmbed(blanked, offset + at)) + close;
           })
           // A reference definition; a footnote's ([^1]: text) is not a link.
+          // Its target is kept as an image's, since a definition can serve
+          // both an image and a link.
           .replace(/^(\s*\[(?!\^)[^\]]+\]:\s+)(\S+)/, (_, open, target) => open + rewrite(target, rel, lineNo, copies));
       })
       .join('');
