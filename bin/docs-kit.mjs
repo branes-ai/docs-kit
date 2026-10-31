@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+// docs-kit init, run in a repo's root: writes the starter set of its docs site
+// (docs-site/, stubs in docs/, the PR check and the deploy), pinned to this
+// version of the kit:
+//
+//   docs-kit init --repo <name> --title <title> --description <text> --hue <0-359>
+//                 [--sha <the release's commit>]
+//
 // docs-kit <command>, run in a site's folder (the one with docs-kit.config.mjs):
 //
 //   sync      generate the content, sidebar and theme from ../docs; fails on a
@@ -21,6 +28,7 @@ import { pathToFileURL } from 'node:url';
 import { checkDist } from '../src/check-dist.mjs';
 import { resolveConfig } from '../src/config.mjs';
 import { doxyfile } from '../src/doxygen.mjs';
+import { starter } from '../src/init.mjs';
 import { sync } from '../src/sync.mjs';
 
 const [command, ...args] = process.argv.slice(2);
@@ -60,7 +68,63 @@ function astro(astroArgs) {
   process.exit(status ?? 1);
 }
 
+// --key value or --key=value.
+function options(argv) {
+  const out = {};
+  for (let i = 0; i < argv.length; i++) {
+    const m = /^--([a-z]+)(?:=(.*))?$/s.exec(argv[i]);
+    if (!m) fail(`unexpected argument ${argv[i]}`);
+    if (m[2] !== undefined) out[m[1]] = m[2];
+    else if (i + 1 < argv.length) out[m[1]] = argv[++i];
+    else fail(`--${m[1]} needs a value`);
+  }
+  return out;
+}
+
+// The commit of this version's release tag, which the workflows pin.
+function releaseSha(tag) {
+  const { status, stdout } = spawnSync('git', ['ls-remote', 'https://github.com/branes-ai/docs-kit', `refs/tags/${tag}`, `refs/tags/${tag}^{}`], { encoding: 'utf8' });
+  if (status !== 0) fail(`could not look up ${tag} on GitHub; pass --sha <its commit>`);
+  const refs = Object.fromEntries(stdout.trim().split('\n').filter(Boolean).map((l) => l.split('\t').reverse()));
+  const sha = refs[`refs/tags/${tag}^{}`] ?? refs[`refs/tags/${tag}`];
+  if (!sha) fail(`no tag ${tag} on GitHub; pass --sha <its commit>`);
+  return sha;
+}
+
+function init(argv) {
+  const known = ['repo', 'title', 'description', 'hue', 'sha'];
+  const o = options(argv);
+  const unknown = Object.keys(o).filter((k) => !known.includes(k));
+  if (unknown.length) fail(`unknown option(s) ${unknown.map((k) => `--${k}`).join(', ')}`);
+  for (const k of ['repo', 'title', 'description', 'hue']) if (o[k] === undefined) fail(`--${k} is required`);
+  const { version } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  let files;
+  try {
+    const hue = /^\d+(\.\d+)?$/.test(o.hue) ? Number(o.hue) : NaN;
+    files = starter({ ...o, hue, version, sha: o.sha ?? releaseSha(`v${version}`) });
+  } catch (e) {
+    fail(e.message);
+  }
+  const existing = Object.keys(files).filter((rel) => fs.existsSync(path.join(siteDir, rel)));
+  if (existing.length) fail(`these exist already, so nothing was written:\n  ${existing.join('\n  ')}`);
+  for (const [rel, text] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(siteDir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(siteDir, rel), text);
+    console.log(`  ${rel}`);
+  }
+  console.log(`docs-kit: the starter set of ${o.repo}'s docs site, on docs-kit v${version}. Next:
+  1. cd docs-site && npm install      the lockfile, then \`npm run dev\` to see the site
+  2. write the documents in docs/, and replace the starter artwork in docs-site/
+  3. commit, and open the PR: the Docs site check builds it
+  4. after the merge, as a repo admin, publish with GitHub Actions:
+       gh api -X POST repos/branes-ai/${o.repo}/pages -f build_type=workflow
+     then run the deploy (gh workflow run deploy-docs.yml) and check https://branes-ai.github.io/${o.repo}/`);
+}
+
 switch (command) {
+  case 'init':
+    init(args);
+    break;
   case 'sync':
     runSync(await loadConfig());
     break;
@@ -98,5 +162,5 @@ switch (command) {
     process.exit(broken.length ? 1 : 0);
   }
   default:
-    fail(`unknown command ${command ?? '(none)'}; use sync, dev, start, build, preview, api or check`);
+    fail(`unknown command ${command ?? '(none)'}; use init, sync, dev, start, build, preview, api or check`);
 }

@@ -1,0 +1,102 @@
+// docs-kit init: the accent from a hue, and the starter set.
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { test } from 'node:test';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveConfig } from '../src/config.mjs';
+import { palette, starter } from '../src/init.mjs';
+import { sync } from '../src/sync.mjs';
+
+const BIN = fileURLToPath(new URL('../bin/docs-kit.mjs', import.meta.url));
+const SHA = 'a'.repeat(40);
+const ARGS = { repo: 'isr-drone', title: 'ISR Drone', description: 'A mission repo.', hue: 210, version: '1.2.3', sha: SHA };
+
+function write(files) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-kit-init-'));
+  for (const [rel, text] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), text);
+  }
+  return dir;
+}
+
+test("the accent of a hue: scout-drone's green at 145", () => {
+  assert.deepEqual(palette(145), {
+    dark: { low: '#142f1f', accent: '#40bf75', high: '#c1f0d5' },
+    light: { low: '#d3f3e0', accent: '#1d7c45', high: '#0c311b' },
+    tile: '#0f2418',
+  });
+  assert.equal(palette(0).dark.accent, '#bf4040');
+  for (const bad of [-1, 360, NaN]) assert.throws(() => palette(bad), /hue/);
+});
+
+test('the starter set syncs from docs/ with no broken link', async () => {
+  const dir = write(starter(ARGS));
+  const config = resolveConfig((await import(pathToFileURL(path.join(dir, 'docs-site/docs-kit.config.mjs')).href)).default);
+  assert.equal(config.repo, 'isr-drone');
+  assert.deepEqual(config.accent, { dark: palette(210).dark, light: palette(210).light });
+  const { errors } = sync({ siteDir: path.join(dir, 'docs-site'), config });
+  assert.deepEqual(errors, []);
+  const sidebar = JSON.parse(fs.readFileSync(path.join(dir, 'docs-site/src/generated/sidebar.json'), 'utf8'));
+  // The landing page is the site's root, and the map, at /overview/, follows
+  // the introduction.
+  assert.deepEqual(sidebar, [{
+    label: 'Getting Started',
+    items: [{ label: 'Introduction', slug: 'getting-started/introduction' }, { label: 'Documentation map', slug: 'overview' }],
+  }]);
+});
+
+test('the package pins the release by tag, the workflows by commit', () => {
+  const files = starter(ARGS);
+  assert.equal(JSON.parse(files['docs-site/package.json']).dependencies['@branes-ai/docs-kit'], 'github:branes-ai/docs-kit#v1.2.3');
+  assert.match(files['.github/workflows/docs-site.yml'], new RegExp(`docs-kit/actions/check@${SHA}  # v1\\.2\\.3`));
+  assert.match(files['.github/workflows/deploy-docs.yml'], new RegExp(`docs-kit/\\.github/workflows/pages\\.yml@${SHA}  # v1\\.2\\.3`));
+  assert.match(files['.github/workflows/deploy-docs.yml'], /repos\/branes-ai\/isr-drone\/pages -f build_type=workflow/);
+});
+
+test('quotes, braces and tags in the title and description', async () => {
+  const title = "Bob's {drone}";
+  const description = 'Flies <fast> & "far" \\ away.';
+  const files = starter({ ...ARGS, title, description });
+  const dir = write(files);
+  const c = (await import(pathToFileURL(path.join(dir, 'docs-site/docs-kit.config.mjs')).href)).default;
+  assert.equal(c.title, title);
+  assert.equal(c.description, description);
+  assert.match(files['docs/index.mdx'], /^title: "Bob's \{drone\}"$/m);
+  assert.match(files['docs/index.mdx'], /^## What Bob's \\\{drone\\\} is$/m);
+  assert.match(files['docs/index.mdx'], /^Flies &lt;fast> & "far" \\ away\.$/m);
+  assert.match(files['docs-site/public/favicon.svg'], /aria-label="Bob's \{drone\}"/);
+});
+
+test('the options are checked', () => {
+  assert.throws(() => starter({ ...ARGS, repo: 'a/b' }), /--repo/);
+  assert.throws(() => starter({ ...ARGS, title: ' ' }), /--title is required/);
+  assert.throws(() => starter({ ...ARGS, sha: 'abc' }), /--sha/);
+  assert.throws(() => starter({ ...ARGS, hue: 400 }), /hue/);
+});
+
+test('init writes the set, and writes nothing over an existing file', () => {
+  const dir = write({ 'README.md': '# A repo\n' });
+  const run = () => spawnSync(process.execPath, [BIN, 'init', '--repo', 'isr-drone', '--title=ISR Drone', '--description', 'A mission repo.', '--hue', '210', '--sha', SHA], { cwd: dir, encoding: 'utf8' });
+  const first = run();
+  assert.equal(first.status, 0, first.stderr);
+  assert.ok(fs.existsSync(path.join(dir, '.github/workflows/deploy-docs.yml')));
+  fs.rmSync(path.join(dir, 'docs-site/package.json'));
+  fs.writeFileSync(path.join(dir, 'docs/README.md'), '# Mine\n');
+  const second = run();
+  assert.equal(second.status, 1);
+  assert.match(second.stderr, /exist already, so nothing was written:\n {2}docs-site\/docs-kit\.config\.mjs/);
+  assert.ok(!fs.existsSync(path.join(dir, 'docs-site/package.json')));
+  assert.equal(fs.readFileSync(path.join(dir, 'docs/README.md'), 'utf8'), '# Mine\n');
+});
+
+test('init needs its options', () => {
+  const r = spawnSync(process.execPath, [BIN, 'init', '--repo', 'x'], { encoding: 'utf8' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /--title is required/);
+  const u = spawnSync(process.execPath, [BIN, 'init', '--colour', 'red'], { encoding: 'utf8' });
+  assert.match(u.stderr, /unknown option\(s\) --colour/);
+});
