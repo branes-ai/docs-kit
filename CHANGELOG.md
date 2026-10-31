@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/branes-ai/docs-kit/compare/v0.2.1...v0.3.0) (2026-10-31)
+
+
+### Features
+
+* api.doxyfile, more Doxygen settings for a site's API reference ([#12](https://github.com/branes-ai/docs-kit/issues/12)) ([070bbb7](https://github.com/branes-ai/docs-kit/commit/070bbb718f8fa8844e7dc4a70df09734e52f247a))
+
 ## [0.2.1](https://github.com/branes-ai/docs-kit/compare/v0.2.0...v0.2.1) (2026-10-30)
 
 
