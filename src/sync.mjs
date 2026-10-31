@@ -193,8 +193,10 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
     }
   }
 
-  // Rewrites one link target found in docs/<rel>, line `lineNo`.
-  function rewrite(target, rel, lineNo, copies) {
+  // Rewrites one link target found in docs/<rel>, line `lineNo`. An image
+  // shown in the page (`embed`) is copied next to it; a link to one goes to
+  // GitHub, like a link to any other file.
+  function rewrite(target, rel, lineNo, copies, embed = true) {
     if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.startsWith('//')) return target;
     const where = `docs/${rel}:${lineNo}`;
     if (target.startsWith('#')) {
@@ -235,7 +237,7 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       }
       return recordUrl(docRel) + (anchor !== null ? `#${anchor}` : '');
     }
-    if (inDocs && !isDir && IMAGE_EXT.has(path.extname(abs).toLowerCase())) {
+    if (embed && inDocs && !isDir && IMAGE_EXT.has(path.extname(abs).toLowerCase())) {
       copies.add(docsRel);
       return target;
     }
@@ -246,6 +248,19 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
     return `${GITHUB}/${kind}/${BRANCH}/${repoRel}` + (anchor !== null ? `#${anchor}` : '');
   }
 
+  // Whether the link whose `](` is at `at` in `text` is an image, `![…](…)`:
+  // its `[` (matched across nested brackets, as in a linked image
+  // `[![alt](a.png)](b.png)`) follows a `!`.
+  function isEmbed(text, at) {
+    let depth = 0;
+    for (let i = at - 1; i >= 0; i--) {
+      if (text[i - 1] === '\\') continue;
+      if (text[i] === ']') depth++;
+      else if (text[i] === '[' && depth-- === 0) return text[i - 1] === '!';
+    }
+    return false;
+  }
+
   // Rewrites the inline links of one line, leaving code spans alone, and in
   // MDX, {expressions}.
   function rewriteLine(line, rel, lineNo, copies) {
@@ -254,9 +269,9 @@ export function sync({ siteDir, repoDir = path.resolve(siteDir, '..'), config })
       .map((part, i) => {
         if (i % 2 === 1) return part;
         return part
-          .replace(/(\]\()(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?\))/g, (_, open, target, close) => {
+          .replace(/(\]\()(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?\))/g, (_, open, target, close, at, text) => {
             const bare = target.startsWith('<') ? target.slice(1, -1) : target;
-            return open + rewrite(bare, rel, lineNo, copies) + close;
+            return open + rewrite(bare, rel, lineNo, copies, isEmbed(text, at)) + close;
           })
           // A reference definition; a footnote's ([^1]: text) is not a link.
           .replace(/^(\s*\[(?!\^)[^\]]+\]:\s+)(\S+)/, (_, open, target) => open + rewrite(target, rel, lineNo, copies));
