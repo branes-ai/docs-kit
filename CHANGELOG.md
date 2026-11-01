@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/branes-ai/docs-kit/compare/v0.6.0...v0.6.1) (2026-11-01)
+
+
+### Documentation
+
+* run the init example at v0.6.0 ([#24](https://github.com/branes-ai/docs-kit/issues/24)) ([31f4f19](https://github.com/branes-ai/docs-kit/commit/31f4f1980404a8cda1477948f1c8cf53f6bca908))
+
 ## [0.6.0](https://github.com/branes-ai/docs-kit/compare/v0.5.0...v0.6.0) (2026-11-01)
 
 
