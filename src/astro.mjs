@@ -104,11 +104,16 @@ export function docsKit(userConfig, configUrl, starlight) {
         },
         sidebar: [
           ...docsSidebar,
-          // The plans and ADRs are published on the architecture site.
-          {
-            label: 'Plans and decisions',
-            items: [{ label: 'On the architecture site', link: `${c.architecture}/${c.repo}/` }],
-          },
+          // The plans and ADRs are published on the architecture site, unless
+          // the site keeps them (records: [], a private repo's).
+          ...(c.records.size > 0
+            ? [
+                {
+                  label: 'Plans and decisions',
+                  items: [{ label: 'On the architecture site', link: `${c.architecture}/${c.repo}/` }],
+                },
+              ]
+            : []),
           ...(hasApi
             ? [
                 {

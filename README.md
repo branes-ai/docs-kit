@@ -1,6 +1,6 @@
 # docs-kit
 
-The docs-site generator every Branes.AI repo shares. A repo writes its documents in `docs/`, where GitHub renders them, and docs-kit generates a [Starlight](https://starlight.astro.build/) site from them and publishes it on the repo's GitHub Pages. A repo keeps only its configuration, and it pins docs-kit to a version: a fix to the generator reaches a repo as a version bump, not as a copy ([plan](docs/plan/docs-kit/README.md)).
+The docs-site generator every Branes.AI repo shares. A repo writes its documents in `docs/`, where GitHub renders them, and docs-kit generates a [Starlight](https://starlight.astro.build/) site from them. A public repo publishes it on its GitHub Pages; a private one only builds and checks it. A repo keeps only its configuration, and it pins docs-kit to a version: a fix to the generator reaches a repo as a version bump, not as a copy ([plan](docs/plan/docs-kit/README.md)).
 
 ## What it does
 
@@ -8,7 +8,7 @@ The docs-site generator every Branes.AI repo shares. A repo writes its documents
 - `docs/index.mdx` is the landing page, using Starlight's hero and components. `docs/README.md` is the documentation map, at `/overview/`.
 - The sidebar has one group per top-level folder, in the order of the map's table, and one per top-level document that the map lists. Within a group, pages follow the order of the links in that folder's row. A page's front matter can set `sidebar.label`, the label instead of the title, and `sidebar.group`, to list it in a nested group of that name; `sidebar.hidden` leaves it out (see [MDX pages and the sidebar](#mdx-pages-and-the-sidebar)).
 - **Links are checked.** A link to a document becomes a link to its page, and a link to any other file in the repo, an image included, becomes a GitHub link. An image shown in a page (`![alt](figure.png)`) is copied next to it. A reference definition (`[fig]: figure.png`) is kept as an image's target, since it can serve both, so link to an image inline. A relative link or anchor that doesn't resolve fails the build, naming the file and line. Headings are read with a Markdown parser, so an anchor is checked as GitHub and Starlight render it. After the build, `docs-kit check` checks every link and anchor in the built HTML.
-- **The records**, `docs/adr/` and `docs/plan/`, are published on the [architecture site](https://branes-ai.github.io/architecture/) rather than here. Their old pages redirect there.
+- **The records**, `docs/adr/` and `docs/plan/`, of a public repo are published on the [architecture site](https://branes-ai.github.io/architecture/) rather than here. Their old pages redirect there. A private repo's records are pages of its own site.
 - **The C++ API reference** is built by Doxygen from the headers the config lists, and served at `<base>api/`.
 
 ## Using it
@@ -25,12 +25,14 @@ npx --yes github:branes-ai/docs-kit#v0.4.0 init --repo isr-drone --title "ISR Dr
 It writes the starter set, pinned to that version of the kit (v0.4.0 or later: the first with `init`), and lists what to do next:
 - **`docs-site/`:** the files below. The accent is worked out from `--hue` (0–359), at the saturation and lightness of scout-drone's green (145). The favicon and the hero image are starter artwork in that accent, for the repo to replace.
 - **`docs/`:** the landing page (`index.mdx`), the documentation map (`README.md`) and `getting-started/introduction.md`, to write over.
-- **`.github/workflows/`:** `docs-site.yml`, the PR check, and `deploy-docs.yml`, the deploy. Both are pinned by the commit of the release tag, which `init` looks up on GitHub; `--sha` gives it instead.
+- **`.github/workflows/`:** `docs-site.yml`, the PR check, and for a public repo `deploy-docs.yml`, the deploy. Both are pinned by the commit of the release tag, which `init` looks up on GitHub; `--sha` gives it instead.
+
+For a private repo it writes no deploy. On the organization's plan, a GitHub Pages site is public even when its repo is private, so a private repo's site is built and checked by the PR job, and never published. Its config sets `records: []`, so its plans and ADRs are pages of its own site, never listed on the architecture site, which is public. `--visibility public` or `--visibility private` says which set to write. Without it, the repo counts as public only if GitHub's API, asked without a token, says it is. Anything else gives the private set, and `init` says why: a private repo, one not created yet, or no network. The private set is refused, with nothing written, while a `deploy-docs.yml` from before is still there.
 
 It writes nothing if any of those files exists already. Then:
 1. Run `npm install` in `docs-site/` for the lockfile, and `npm run dev` to see the site.
 2. Open the PR. The Docs site check builds the site.
-3. After the merge, a repo admin publishes Pages from GitHub Actions: `gh api -X POST repos/branes-ai/<repo>/pages -f build_type=workflow`. Then run the deploy (`gh workflow run deploy-docs.yml`) and check the site.
+3. For a public repo, after the merge, a repo admin publishes Pages from GitHub Actions: `gh api -X POST repos/branes-ai/<repo>/pages -f build_type=workflow`. Then run the deploy (`gh workflow run deploy-docs.yml`) and check the site.
 
 ### The site's files
 

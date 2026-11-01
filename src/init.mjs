@@ -1,6 +1,11 @@
 // The starter set of a new repo's docs site: `docs-kit init`. The files are
 // those of a site built by this version of the kit (docs-site/, stubs in
 // docs/, the PR check and the deploy), with the repo's name, title and accent.
+//
+// A private repo's set has no deploy. On the organization's plan a GitHub
+// Pages site is public even when its repo is private, so the site is built
+// and checked, never published; its records (adr/, plan/) are published on
+// the site, not on the architecture site, which is public.
 
 const CHECKOUT = 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1';
 
@@ -37,9 +42,12 @@ const yaml = (s) => JSON.stringify(s);
 const mdx = (s) => s.replace(/[{}]/g, '\\$&').replace(/</g, '&lt;');
 
 // repo, title and description are the config's; hue the accent's; version and
-// sha the kit's release, which the site's package.json and the workflows pin.
-export function starter({ repo, title, description, hue, version, sha }) {
+// sha the kit's release, which the site's package.json and the workflows pin;
+// visibility the repo's, 'public' or 'private'.
+export function starter({ repo, title, description, hue, version, sha, visibility }) {
   if (!/^[A-Za-z0-9._-]+$/.test(repo ?? '')) throw new Error('--repo must be the repo\'s name on GitHub');
+  if (visibility !== 'public' && visibility !== 'private') throw new Error('--visibility must be public or private');
+  const isPublic = visibility === 'public';
   for (const [k, v] of Object.entries({ title, description })) {
     if (typeof v !== 'string' || !v.trim()) throw new Error(`--${k} is required`);
     // One line: it goes into the config, the front matter, a heading and the artwork.
@@ -74,13 +82,22 @@ export function starter({ repo, title, description, hue, version, sha }) {
 
   files['docs-site/docs-kit.config.mjs'] = `// The docs site's configuration: everything docs-kit does not default.
 // https://github.com/${kit}
-export default {
+${isPublic ? '' : `//
+// The site is built and checked in CI (.github/workflows/docs-site.yml), and
+// never published: the repo is private, and a GitHub Pages site is public.
+// Read it locally with \`npm run dev\`.
+`}export default {
   repo: ${quote(repo)},
   title: ${quote(title)},
   description: ${quote(description)},
   // The session logs are working records, not documentation.
   unpublished: ['sessions'],
-  accent: {
+${isPublic ? '' : `  // The records (adr/, plan/) are published here, with the rest: the
+  // architecture site is public, and must never list a private repo's.
+  records: [],
+  // The dev server listens on this machine only, not on every interface.
+  astro: { server: { host: '127.0.0.1' } },
+`}  accent: {
     dark: { low: '${c.dark.low}', accent: '${c.dark.accent}', high: '${c.dark.high}' },
     light: { low: '${c.light.low}', accent: '${c.light.accent}', high: '${c.light.high}' },
   },
@@ -126,10 +143,10 @@ dist/
 # Edit the documents in docs/, never these.
 src/content/docs/
 src/generated/
-# The records' old pages, redirects to the architecture site.
+${isPublic ? `# The records' old pages, redirects to the architecture site.
 public/adr/
 public/plan/
-
+` : ''}
 # Generated Doxygen C++ API reference (built in CI / by \`npm run api\`)
 public/api/
 `;
@@ -197,14 +214,18 @@ ${mdx(description)}
 
   files['docs/README.md'] = `# Documentation map
 
-These documents are published at <${url}>. The site is generated from this folder on every merge to main: edit the documents here, never the site. [\`index.mdx\`](index.mdx) is the site's landing page, and this file is its documentation map.
+${isPublic
+    ? `These documents are published at <${url}>. The site is generated from this folder on every merge to main: edit the documents here, never the site.`
+    : `These documents are built into a site that is never published: the repo is private, and a GitHub Pages site is public. Run \`npm run dev\` in \`docs-site/\` to read it. Edit the documents here, never the site.`} [\`index.mdx\`](index.mdx) is the site's landing page, and this file is its documentation map.
 
 | Folder | Contents |
 |---|---|
 | [getting-started/](getting-started/introduction.md) | [Introduction](getting-started/introduction.md) |
 | sessions/ | Dated session records (\`YYYY-MM-DD-short-topic.md\`), not published |
 
-A plan (\`plan/\`) or an architecture decision (\`adr/\`) is published on the [architecture site](https://branes-ai.github.io/architecture/), alongside every other repo's plans and decisions and their status, rather than here.
+${isPublic
+    ? 'A plan (`plan/`) or an architecture decision (`adr/`) is published on the [architecture site](https://branes-ai.github.io/architecture/), alongside every other repo\'s plans and decisions and their status, rather than here.'
+    : 'A plan (`plan/`) or an architecture decision (`adr/`) is part of this site, with the rest. The [architecture site](https://branes-ai.github.io/architecture/) is public, so it never lists this repo\'s.'}
 `;
 
   files['docs/getting-started/introduction.md'] = `# Introduction
@@ -216,9 +237,15 @@ ${description}
 
   files['.github/workflows/docs-site.yml'] = `name: Docs site
 
-# Builds the docs site (generated from docs/ by docs-kit) as the deploy does,
+${isPublic
+    ? `# Builds the docs site (generated from docs/ by docs-kit) as the deploy does,
 # so a broken relative link or anchor fails the PR instead of the deploy after
-# merge. A repo with a CI workflow can move this job into it.
+# merge. A repo with a CI workflow can move this job into it.`
+    : `# Builds the docs site (generated from docs/ by docs-kit) and checks every
+# link and anchor in it, so a broken one fails the PR. It never publishes the
+# site: the repo is private, and on the organization's plan a GitHub Pages
+# site is public even when its repo is not. There is no deploy workflow, and
+# there must not be one. A repo with a CI workflow can move this job into it.`}
 
 on:
   pull_request:
@@ -246,6 +273,8 @@ jobs:
       # the deploy does, and checks every link and anchor in it.
       - uses: ${kit}/actions/check@${sha}  # ${tag}
 `;
+
+  if (!isPublic) return files;
 
   files['.github/workflows/deploy-docs.yml'] = `name: Deploy Documentation
 
