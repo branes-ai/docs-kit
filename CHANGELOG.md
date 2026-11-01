@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/branes-ai/docs-kit/compare/v0.5.0...v0.6.0) (2026-11-01)
+
+
+### Features
+
+* init writes no deploy for a private repo ([#21](https://github.com/branes-ai/docs-kit/issues/21)) ([bf2f4a8](https://github.com/branes-ai/docs-kit/commit/bf2f4a87c43cff3c6fb38b3653ea83f6a89081f1))
+
 ## [0.5.0](https://github.com/branes-ai/docs-kit/compare/v0.4.1...v0.5.0) (2026-11-01)
 
 
