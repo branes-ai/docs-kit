@@ -18,11 +18,11 @@ The docs-site generator every Branes.AI repo shares. A repo writes its documents
 In a repo without a site, from its root:
 
 ```sh
-npx --yes github:branes-ai/docs-kit#v0.4.0 init --repo isr-drone --title "ISR Drone" \
+npx --yes github:branes-ai/docs-kit#v0.6.0 init --repo isr-drone --title "ISR Drone" \
   --description "The Branes.AI mission repo for …" --hue 210
 ```
 
-It writes the starter set, pinned to that version of the kit (v0.4.0 or later: the first with `init`), and lists what to do next:
+It writes the starter set, pinned to that version of the kit (`init` is in v0.4.0 and later, and the private-repo set in v0.6.0 and later), and lists what to do next:
 - **`docs-site/`:** the files below. The accent is worked out from `--hue` (0–359), at the saturation and lightness of scout-drone's green (145). The favicon and the hero image are starter artwork in that accent, for the repo to replace.
 - **`docs/`:** the landing page (`index.mdx`), the documentation map (`README.md`) and `getting-started/introduction.md`, to write over.
 - **`.github/workflows/`:** `docs-site.yml`, the PR check, and for a public repo `deploy-docs.yml`, the deploy. Both are pinned by the commit of the release tag, which `init` looks up on GitHub; `--sha` gives it instead.
