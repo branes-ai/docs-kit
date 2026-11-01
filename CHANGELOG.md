@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/branes-ai/docs-kit/compare/v0.4.1...v0.5.0) (2026-11-01)
+
+
+### Features
+
+* refuse to deploy the docs site of a repo that isn't public ([#20](https://github.com/branes-ai/docs-kit/issues/20)) ([5a10e50](https://github.com/branes-ai/docs-kit/commit/5a10e50b9749a498947be2b96aa6b50cc6ceb234))
+
 ## [0.4.1](https://github.com/branes-ai/docs-kit/compare/v0.4.0...v0.4.1) (2026-10-31)
 
 
