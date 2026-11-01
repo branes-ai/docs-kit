@@ -68,7 +68,7 @@ docs-site/
     "preview": "docs-kit preview"
   },
   "dependencies": {
-    "@branes-ai/docs-kit": "github:branes-ai/docs-kit#v0.2.0"
+    "@branes-ai/docs-kit": "github:branes-ai/docs-kit#v0.6.0"
   }
 }
 ```
