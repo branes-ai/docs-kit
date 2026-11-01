@@ -16,6 +16,11 @@ name: Deploy a docs site
 # steps run the site's npm scripts (api, build, check), so its hooks run too:
 # a `prebuild` script runs before the build. One-time
 # setup (repo admin): Settings → Pages → Source = "GitHub Actions".
+#
+# It refuses a repo that isn't public. On the organization's plan a Pages site
+# is public even when its repo is private or internal, so the deploy would
+# publish a private repo's docs to anyone. Such a repo builds and checks its
+# site with actions/check, and doesn't deploy it.
 
 on:
   workflow_call:
@@ -41,6 +46,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - name: Refuse a repo that isn't public
+        # From the API, not the event: every trigger has the repo's name, not
+        # every one its visibility.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! visibility=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility); then
+            echo "::error::could not read the visibility of $GITHUB_REPOSITORY: not deployed."
+            exit 1
+          fi
+          if [ "$visibility" != public ]; then
+            echo "::error::$GITHUB_REPOSITORY is $visibility, and its Pages site would be public: not deployed. Check the site with actions/check instead."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

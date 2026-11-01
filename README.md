@@ -149,6 +149,8 @@ jobs:
 
 The generator's version is the one in `package.json`. The action and the workflow only run it, so they are pinned by commit like any other action.
 
+The deploy refuses a repo that isn't public. On the organization's plan, a Pages site is public even when its repo is private or internal, so the deploy would publish a private repo's docs to anyone. The guard is in `pages.yml`, so it protects only a repo whose `deploy-docs.yml` pins a release that has it. The changelog names the first one; a repo pinned to an earlier release must bump its pin first. A private repo keeps the PR job, `actions/check`, which builds and checks its site without publishing it. Its readers read the docs on GitHub, or run the site locally with `npm run dev`.
+
 ### MDX pages and the sidebar
 
 A page that needs the site's components is MDX in `docs/`, and it imports them from the site's `src/` through `@site/`:
