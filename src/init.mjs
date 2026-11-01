@@ -95,6 +95,8 @@ ${isPublic ? '' : `//
 ${isPublic ? '' : `  // The records (adr/, plan/) are published here, with the rest: the
   // architecture site is public, and must never list a private repo's.
   records: [],
+  // The dev server listens on this machine only, not on every interface.
+  astro: { server: { host: '127.0.0.1' } },
 `}  accent: {
     dark: { low: '${c.dark.low}', accent: '${c.dark.accent}', high: '${c.dark.high}' },
     light: { low: '${c.light.low}', accent: '${c.light.accent}', high: '${c.light.high}' },

@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { docsKit } from '../src/astro.mjs';
 import { resolveConfig } from '../src/config.mjs';
 import { palette, starter } from '../src/init.mjs';
 import { sync } from '../src/sync.mjs';
@@ -122,6 +123,24 @@ test('init writes the set, and writes nothing over an existing file', () => {
   assert.match(second.stderr, /exist already, so nothing was written:\n {2}docs-site\/docs-kit\.config\.mjs/);
   assert.ok(!fs.existsSync(path.join(dir, 'docs-site/package.json')));
   assert.equal(fs.readFileSync(path.join(dir, 'docs/README.md'), 'utf8'), '# Mine\n');
+});
+
+test('a private repo\'s site has no architecture-site link, and serves on localhost only', async () => {
+  const site = (files) => {
+    const dir = write({ ...files, 'docs-site/src/generated/sidebar.json': '[]' });
+    return import(pathToFileURL(path.join(dir, 'docs-site/docs-kit.config.mjs')).href).then(({ default: c }) => {
+      let options;
+      const starlight = (o) => ((options = o), { name: 'starlight' });
+      const astro = docsKit(c, pathToFileURL(path.join(dir, 'docs-site/astro.config.mjs')), starlight);
+      return { astro, labels: options.sidebar.map((g) => g.label) };
+    });
+  };
+  const pub = await site(starter(ARGS));
+  assert.ok(pub.labels.includes('Plans and decisions'));
+  assert.deepEqual(pub.astro.server, { host: '0.0.0.0' });
+  const priv = await site(starter(PRIVATE));
+  assert.ok(!priv.labels.includes('Plans and decisions'));
+  assert.deepEqual(priv.astro.server, { host: '127.0.0.1' });
 });
 
 test('init --visibility private writes no deploy, and says not to publish', () => {
