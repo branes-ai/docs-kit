@@ -96,10 +96,11 @@ function releaseSha(tag) {
 }
 
 // The repo's visibility from GitHub's API, without a token: 'public' only if
-// the API says so, else 'private', with the reason.
+// the API says so, else 'private', with the reason. A stalled request times
+// out into the private set.
 async function lookUpVisibility(repo) {
   try {
-    const r = await fetch(`https://api.github.com/repos/branes-ai/${repo}`, { headers: { accept: 'application/vnd.github+json' } });
+    const r = await fetch(`https://api.github.com/repos/branes-ai/${repo}`, { headers: { accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(10_000) });
     if (r.ok && (await r.json()).visibility === 'public') return { visibility: 'public' };
     return { visibility: 'private', reason: r.ok ? 'GitHub says it is not public' : `GitHub answered ${r.status} without a token: private, or not created yet` };
   } catch (e) {
@@ -127,6 +128,9 @@ async function init(argv) {
   } catch (e) {
     fail(e.message);
   }
+  // The private set has no deploy, so one left from before would publish it.
+  const deploy = '.github/workflows/deploy-docs.yml';
+  if (visibility === 'private' && fs.existsSync(path.join(siteDir, deploy))) fail(`${deploy} exists, and would publish this private repo's site: remove it, then run init again. Nothing was written`);
   const existing = Object.keys(files).filter((rel) => fs.existsSync(path.join(siteDir, rel)));
   if (existing.length) fail(`these exist already, so nothing was written:\n  ${existing.join('\n  ')}`);
   // Each file is created exclusively: if one appears after the check above, the

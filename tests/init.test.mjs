@@ -156,6 +156,48 @@ test('init --visibility private writes no deploy, and says not to publish', () =
   assert.match(bad.stderr, /--visibility must be public or private/);
 });
 
+// Runs init without --visibility, with fetch replaced by `fake` (the source of
+// an async function), so GitHub's API is never asked.
+function initAsking(dir, fake) {
+  const preload = `data:text/javascript,${encodeURIComponent(`globalThis.fetch = ${fake};`)}`;
+  return spawnSync(process.execPath, ['--import', preload, BIN, 'init', '--repo', 'isr-drone', '--title', 'ISR Drone', '--description', 'A mission repo.', '--hue', '210', '--sha', SHA], { cwd: dir, encoding: 'utf8' });
+}
+
+test('init without --visibility writes the public set only when GitHub says the repo is public', () => {
+  // The lookup asks for this repo, with a deadline.
+  const pub = write({});
+  const r = initAsking(pub, `async (url, o) => {
+    if (url !== 'https://api.github.com/repos/branes-ai/isr-drone' || !(o.signal instanceof AbortSignal)) throw new Error('wrong request');
+    return new Response(JSON.stringify({ visibility: 'public' }));
+  }`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(fs.existsSync(path.join(pub, '.github/workflows/deploy-docs.yml')));
+  assert.doesNotMatch(r.stdout, /private set/);
+  const answers = {
+    'not public': [`async () => new Response(JSON.stringify({ visibility: 'internal' }))`, /GitHub says it is not public, so this is the private set/],
+    'not found': [`async () => new Response('{}', { status: 404 })`, /GitHub answered 404 without a token/],
+    'unreachable': [`async () => { throw new Error('offline'); }`, /GitHub could not be reached \(offline\)/],
+  };
+  for (const [name, [fake, reason]] of Object.entries(answers)) {
+    const dir = write({});
+    const p = initAsking(dir, fake);
+    assert.equal(p.status, 0, `${name}: ${p.stderr}`);
+    assert.match(p.stdout, reason, name);
+    assert.ok(fs.existsSync(path.join(dir, '.github/workflows/docs-site.yml')), name);
+    assert.ok(!fs.existsSync(path.join(dir, '.github/workflows/deploy-docs.yml')), name);
+  }
+});
+
+test('init --visibility private refuses a repo that has a deploy already', () => {
+  const deploy = 'name: Deploy Documentation\n';
+  const dir = write({ '.github/workflows/deploy-docs.yml': deploy });
+  const r = spawnSync(process.execPath, [BIN, 'init', '--repo', 'secret-gen', '--title', 'Secret', '--description', 'A private repo.', '--hue', '30', '--sha', SHA, '--visibility', 'private'], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /deploy-docs\.yml exists, and would publish this private repo's site/);
+  assert.ok(!fs.existsSync(path.join(dir, 'docs-site')));
+  assert.equal(fs.readFileSync(path.join(dir, '.github/workflows/deploy-docs.yml'), 'utf8'), deploy);
+});
+
 test('init needs its options', () => {
   const r = spawnSync(process.execPath, [BIN, 'init', '--repo', 'x'], { encoding: 'utf8' });
   assert.equal(r.status, 1);
