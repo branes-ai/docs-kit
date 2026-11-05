@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/branes-ai/docs-kit/compare/v0.6.2...v0.6.3) (2026-11-05)
+
+
+### Continuous Integration
+
+* add Branes.AI CLA check ([#28](https://github.com/branes-ai/docs-kit/issues/28)) ([9ba3db3](https://github.com/branes-ai/docs-kit/commit/9ba3db385815ad0b6a9f2536aaf4b5bd6ac3ef79))
+
 ## [0.6.2](https://github.com/branes-ai/docs-kit/compare/v0.6.1...v0.6.2) (2026-11-05)
 
 
