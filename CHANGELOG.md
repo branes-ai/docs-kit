@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/branes-ai/docs-kit/compare/v0.6.1...v0.6.2) (2026-11-05)
+
+
+### Continuous Integration
+
+* pin docs-kit and architecture by their rewritten shas ([#26](https://github.com/branes-ai/docs-kit/issues/26)) ([a0a2729](https://github.com/branes-ai/docs-kit/commit/a0a27294677ee9315fe529f677916d88cce684eb))
+
 ## [0.6.1](https://github.com/branes-ai/docs-kit/compare/v0.6.0...v0.6.1) (2026-11-01)
 
 
