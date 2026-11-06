@@ -216,4 +216,4 @@ npm run example   # builds and checks example/, a repo laid out as above
 
 To try a change on a repo's site before releasing it, run `npm install ../docs-kit` in that repo's `docs-site/`, which links your checkout.
 
-Releases are cut on purpose. release-please keeps a release PR open for the releasable commits merged to `main` (`feat`, `fix`, `perf`, `revert`, `refactor` and `build`), and merging it, when a version is wanted, tags the release (`v0.1.0`, …). `docs`, `ci`, `test` and `chore` commits stay out of the changelog and open no release PR.
+Releases are automatic: release-please versions and tags each releasable merge to `main` (`v0.1.0`, …), following Conventional Commits, and the release workflow merges its own release PR. Only `feat`, `fix`, `perf`, `revert`, `refactor` and `build` commits are releasable. `docs`, `ci`, `test` and `chore` commits stay out of the changelog and cut no release, unless they are breaking (`!` or a `BREAKING CHANGE` footer) or carry a `Release-As` footer.
